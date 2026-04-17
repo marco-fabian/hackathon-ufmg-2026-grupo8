@@ -43,3 +43,6 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Outros
+todo.txt
