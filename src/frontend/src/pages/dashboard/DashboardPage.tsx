@@ -1,76 +1,44 @@
-import { useState } from 'react'
-import { TrendingUp, TrendingDown, Scale, Landmark, FileText, Clock } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Scale, Landmark, FileText, AlertCircle, Clock } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DataTableBase, type ColumnDef, type SortDirection } from '@/components/data/DataTableBase'
 import { ChartCardBase } from '@/components/data/ChartCardBase'
+import { useView } from '@/context/ViewContext'
+import { mockProcessos, type Processo } from '@/data/mockData'
 
-// ─── Mock Data ────────────────────────────────────────────────────────────
-const CHART_DATA = [
-  { mes: 'Jan', acordos: 12, processos: 28, receita: 142 },
-  { mes: 'Fev', acordos: 18, processos: 34, receita: 198 },
-  { mes: 'Mar', acordos: 9,  processos: 22, receita: 113 },
-  { mes: 'Abr', acordos: 23, processos: 41, receita: 267 },
-  { mes: 'Mai', acordos: 15, processos: 30, receita: 185 },
-  { mes: 'Jun', acordos: 31, processos: 55, receita: 342 },
-  { mes: 'Jul', acordos: 27, processos: 48, receita: 298 },
-]
+// ─── LÓGICA DE DADOS (Processamento) ──────────────────────────────────────
 
-type StatusType = 'Ativo' | 'Em Andamento' | 'Encerrado' | 'Urgente'
-
-interface Process {
-  id: string
-  numero: string
-  cliente: string
-  tipo: string
-  status: StatusType
-  valor: string
-  prazo: string
+// Exito vs Não Exito
+function parseExito(resultadoMicro: string): 'Êxito' | 'Não Êxito' {
+  const norm = resultadoMicro.toLowerCase()
+  if (norm.includes('improcede') || norm.includes('extin') || norm.includes('acordo')) {
+    return 'Êxito'
+  }
+  return 'Não Êxito'
 }
 
-const TABLE_DATA: Process[] = [
-  { id: '1', numero: '0012345-67.2024', cliente: 'Banco Alfa S.A.',      tipo: 'Cível',      status: 'Ativo',        valor: 'R$ 1.200.000',  prazo: '15/05/2025' },
-  { id: '2', numero: '0098765-43.2023', cliente: 'Construtora Beta',    tipo: 'Trabalhista', status: 'Em Andamento', valor: 'R$ 340.000',    prazo: '03/06/2025' },
-  { id: '3', numero: '0011223-55.2024', cliente: 'Fundo Capital XP',    tipo: 'Tributário',  status: 'Urgente',      valor: 'R$ 8.500.000',  prazo: '30/04/2025' },
-  { id: '4', numero: '0054321-98.2022', cliente: 'Holding Delta Ltda.', tipo: 'Societário',  status: 'Encerrado',    valor: 'R$ 2.100.000',  prazo: '—' },
-  { id: '5', numero: '0078901-12.2024', cliente: 'Seguradora Omega',    tipo: 'Cível',       status: 'Ativo',        valor: 'R$ 520.000',    prazo: '22/07/2025' },
-]
-
-// ─── Status Badge ─────────────────────────────────────────────────────────
-const STATUS_STYLES: Record<StatusType, { bg: string; text: string }> = {
-  'Ativo':        { bg: 'var(--color-info-bg)',    text: 'var(--color-info-text)' },
-  'Em Andamento': { bg: 'var(--color-warning-bg)', text: 'var(--color-warning-text)' },
-  'Encerrado':    { bg: 'var(--color-bg-subtle)',  text: 'var(--color-text-secondary)' },
-  'Urgente':      { bg: 'var(--color-danger-bg)',  text: 'var(--color-danger-text)' },
+// Aderência
+function checkAderente(statusIA: string, decisaoAdv: string): 'Aderente' | 'Não Aderente' {
+  // Conforme requisito explícito: comparar os dois status.
+  return String(statusIA).toLowerCase() === String(decisaoAdv).toLowerCase()
+    ? 'Aderente'
+    : 'Não Aderente'
 }
 
-function StatusBadge({ status }: { status: StatusType }) {
-  const style = STATUS_STYLES[status]
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '2px 10px',
-      borderRadius: '9999px',
-      fontSize: '11px',
-      fontWeight: 600,
-      backgroundColor: style.bg,
-      color: style.text,
-      letterSpacing: '0.02em',
-    }}>
-      {status}
-    </span>
-  )
-}
+// Cores Padronizadas (Requisitos)
+const COLOR_SUCCESS = '#10B981' // Verde
+const COLOR_DANGER = '#EF4444'  // Vermelho
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────
+// ─── Componentes Complementares (KPI Card) ────────────────────────────────
+
 interface KpiCardProps {
   label: string
   value: string
-  change: string
-  isPositive: boolean
   icon: React.ReactNode
+  subtitle?: string
 }
 
-function KpiCard({ label, value, change, isPositive, icon }: KpiCardProps) {
+function KpiCard({ label, value, icon, subtitle }: KpiCardProps) {
   return (
     <div style={{
       backgroundColor: 'var(--color-bg-card)',
@@ -83,7 +51,7 @@ function KpiCard({ label, value, change, isPositive, icon }: KpiCardProps) {
       gap: '12px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span style={{ flex: 1, fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
           {label}
         </span>
         <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: 'var(--color-primary-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-600)' }}>
@@ -94,97 +62,218 @@ function KpiCard({ label, value, change, isPositive, icon }: KpiCardProps) {
         <p style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
           {value}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-          {isPositive
-            ? <TrendingUp size={12} style={{ color: 'var(--color-success)' }} />
-            : <TrendingDown size={12} style={{ color: 'var(--color-danger)' }} />}
-          <span style={{ fontSize: '11px', fontWeight: 500, color: isPositive ? 'var(--color-success)' : 'var(--color-danger)' }}>
-            {change}
-          </span>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>vs. mês anterior</span>
-        </div>
+        {subtitle && (
+          <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            {subtitle}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-// ─── Columns definition ───────────────────────────────────────────────────
+// ─── Definição de Colunas da Tabela (Opcional, mas mantém coerência) ──────
 const COLUMNS: ColumnDef<Record<string, unknown>>[] = [
-  { key: 'numero',  header: 'Nº Processo',  sortable: true,  width: '200px' },
-  { key: 'cliente', header: 'Cliente',       sortable: true },
-  { key: 'tipo',    header: 'Tipo',          sortable: true,  width: '110px' },
+  { key: 'numeroCaso', header: 'Nº Processo', sortable: true, width: '220px' },
+  { key: 'uf', header: 'UF', width: '60px' },
+  { key: 'resultadoMicro', header: 'Resultado (Base)', sortable: true },
   {
-    key: 'status',
-    header: 'Status',
-    width: '130px',
-    render: (val) => <StatusBadge status={val as StatusType} />,
-  },
-  { key: 'valor',   header: 'Valor em Causa', sortable: true, align: 'right', width: '140px' },
-  {
-    key: 'prazo',
-    header: 'Prazo',
-    align: 'right',
-    width: '110px',
+    key: 'decisaoAdvogado',
+    header: 'Ação Atual',
     render: (val) => (
-      <span style={{ color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px' }}>
-        <Clock size={11} />
+      <span style={{ fontSize: '12px', fontWeight: 500, textTransform: 'capitalize' }}>
         {String(val)}
       </span>
     ),
+  },
+  {
+    key: 'valorCausa',
+    header: 'Valor Causa',
+    align: 'right',
+    render: (val) =>
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val)),
   },
 ]
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const { userRole } = useView()
   const [sortColumn, setSortColumn] = useState<string | undefined>(undefined)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
 
-  function handleSort(col: string, dir: SortDirection) {
-    setSortColumn(col)
-    setSortDirection(dir)
-  }
+  // Advogado fixo pra fins de demonstração (como consta na Sidebar do DashboardLayout)
+  const ADVOGADO_LOGADO = 'Dr. Rafael Silva'
+
+  // Preparações de dados
+  const processosAtuais = useMemo(() => {
+    return userRole === 'advogado'
+      ? mockProcessos.filter((p) => p.advogadoResponsavel === ADVOGADO_LOGADO)
+      : mockProcessos
+  }, [userRole])
+
+  // 1. SEÇÃO TODOS: Métricas GERAIS
+  const volumeTotal = typeof mockProcessos !== 'undefined' ? mockProcessos.length : 0
+  const valorTotalRisco = mockProcessos.reduce((acc, p) => acc + p.valorCausa, 0)
+  
+  // 2. SEÇÃO BANCO: Gráfico de Aderência (Sistema vs Advogado)
+  const aderenciaData = useMemo(() => {
+    let aderente = 0
+    let naoAderente = 0
+
+    mockProcessos.forEach((p) => {
+      if (checkAderente(p.statusDaIA, p.decisaoAdvogado) === 'Aderente') {
+        aderente++
+      } else {
+        naoAderente++
+      }
+    })
+    return [{ name: 'Comparativo IA x Adv', Aderente: aderente, 'Não Aderente': naoAderente }]
+  }, [])
+
+  // 2. SEÇÃO BANCO: Gráfico de Performance (Êxito vs Não Êxito - Geral)
+  const performanceGeralData = useMemo(() => {
+    let exito = 0
+    let naoExito = 0
+
+    mockProcessos.forEach((p) => {
+      if (parseExito(p.resultadoMicro) === 'Êxito') exito++
+      else naoExito++
+    })
+    return [{ name: 'Qualidade da Resolução', 'Êxito': exito, 'Não Êxito': naoExito }]
+  }, [])
+
+  // 3. SEÇÃO ADVOGADO: Gráfico de Performance (Meu Desempenho)
+  const performanceAdvogadoData = useMemo(() => {
+    let exito = 0
+    let naoExito = 0
+
+    processosAtuais.forEach((p) => {
+      if (parseExito(p.resultadoMicro) === 'Êxito') exito++
+      else naoExito++
+    })
+    return [{ name: 'Meus Processos', 'Êxito': exito, 'Não Êxito': naoExito }]
+  }, [processosAtuais])
+
+  // 3. SEÇÃO ADVOGADO: Cards Específicos
+  const pendentesAdvogado = processosAtuais.filter((p) => p.decisaoAdvogado === 'pendente').length
+  const economizadoAdvogado = processosAtuais
+    .filter((p) => parseExito(p.resultadoMicro) === 'Êxito' || p.decisaoAdvogado === 'acordo')
+    .reduce((acc, p) => acc + Math.max(0, p.valorCausa - p.valorCondenacao), 0)
+
+  // Formatador
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
 
   return (
-    <DashboardLayout pageTitle="Dashboard · Visão Geral">
-      {/* KPI Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <KpiCard label="Processos Ativos"  value="127"          change="+12%"    isPositive icon={<Scale    size={16} />} />
-        <KpiCard label="Acordos no Mês"    value="31"           change="+41%"    isPositive icon={<FileText size={16} />} />
-        <KpiCard label="Receita Acumulada" value="R$ 1,34M"     change="+8.2%"   isPositive icon={<Landmark size={16} />} />
-        <KpiCard label="Taxa de Sucesso"   value="78.4%"        change="-2.1 pp" isPositive={false} icon={<TrendingUp size={16} />} />
-      </div>
+    <DashboardLayout pageTitle={`Dashboard · ${userRole === 'banco' ? 'Visão Executiva (Banco)' : 'Meu Painel (Advogado)'}`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', transition: 'all 0.3s ease' }}>
+        
+        {/* ======================= SEÇÃO "TODOS" ======================= */}
+        <section>
+          <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            Visão Geral e Risco
+          </h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+            <KpiCard
+              label="Volume Total (Banco)"
+              value={String(volumeTotal)}
+              icon={<Scale size={18} />}
+              subtitle="Quantidade global de processos em trâmite"
+            />
+            <KpiCard
+              label="Valor Total em Risco"
+              value={formatCurrency(valorTotalRisco)}
+              icon={<Landmark size={18} />}
+              subtitle="Soma integral do valor de todas as causas"
+            />
+          </div>
+        </section>
 
-      {/* Charts Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-        <ChartCardBase
-          title="Acordos vs. Processos"
-          subtitle="Comparativo mensal do semestre"
-          data={CHART_DATA}
-          xAxisKey="mes"
-          series={[
-            { dataKey: 'acordos',   label: 'Acordos',   color: '#16A34A' },
-            { dataKey: 'processos', label: 'Processos', color: '#2563EB' },
-          ]}
-        />
-        <ChartCardBase
-          title="Receita por Mês"
-          subtitle="Honorários acumulados (R$ mil)"
-          data={CHART_DATA}
-          xAxisKey="mes"
-          series={[{ dataKey: 'receita', label: 'Receita', color: '#2563EB' }]}
-          formatValue={(v) => `${v}k`}
-        />
-      </div>
+        {/* ======================= SEÇÃO "BANCO" ======================= */}
+        {userRole === 'banco' && (
+          <section style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              Insights Corporativos e Performance Jurídica
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+              <ChartCardBase
+                title="Sistema vs Advogados (Aderência)"
+                subtitle="Status IA versus a decisão tomada pelo advogado"
+                data={aderenciaData}
+                xAxisKey="name"
+                series={[
+                  { dataKey: 'Aderente', label: 'Aderente (Aceito)', color: COLOR_SUCCESS },
+                  { dataKey: 'Não Aderente', label: 'Não Aderente (Negado)', color: COLOR_DANGER },
+                ]}
+              />
+              <ChartCardBase
+                title="Performance Geral de Defesa"
+                subtitle="Êxitos (Improcedência/Acordos) vs Não Êxitos"
+                data={performanceGeralData}
+                xAxisKey="name"
+                series={[
+                  { dataKey: 'Êxito', label: 'Êxito', color: COLOR_SUCCESS },
+                  { dataKey: 'Não Êxito', label: 'Não Êxito', color: COLOR_DANGER },
+                ]}
+              />
+            </div>
+          </section>
+        )}
 
-      {/* Data Table */}
-      <DataTableBase
-        columns={COLUMNS}
-        data={TABLE_DATA as unknown as Record<string, unknown>[]}
-        caption="Processos Recentes"
-        sortColumn={sortColumn}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-      />
+        {/* ======================= SEÇÃO "ADVOGADO" ==================== */}
+        {userRole === 'advogado' && (
+          <section style={{ animation: 'fadeIn 0.4s ease-out' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              Minha Produtividade (Dr(a). Rafael Silva)
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <KpiCard
+                  label="Processos Pendentes"
+                  value={String(pendentesAdvogado)}
+                  icon={<AlertCircle size={18} />}
+                  subtitle="Aguardando a sua análise ou decisão"
+                />
+                <KpiCard
+                  label="Valor Economizado (Acordos/Êxitos)"
+                  value={formatCurrency(economizadoAdvogado)}
+                  icon={<FileText size={18} />}
+                  subtitle="Redução de passivo gerada (Valor Causa - Condenação)"
+                />
+              </div>
+
+              <ChartCardBase
+                title="Meu Desempenho Pessoal"
+                subtitle="Proporção de resoluções favoráveis nos meus processos"
+                data={performanceAdvogadoData}
+                xAxisKey="name"
+                series={[
+                  { dataKey: 'Êxito', label: 'Êxito', color: COLOR_SUCCESS },
+                  { dataKey: 'Não Êxito', label: 'Não Êxito', color: COLOR_DANGER },
+                ]}
+              />
+              
+            </div>
+          </section>
+        )}
+
+        {/* ==================== DATATABLE DE APOIO ===================== */}
+        <section>
+          <DataTableBase
+            columns={COLUMNS}
+            data={processosAtuais as unknown as Record<string, unknown>[]}
+            caption={userRole === 'banco' ? 'Últimos Registros (Global)' : 'Meus Últimos Processos'}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={(col, dir) => {
+              setSortColumn(col)
+              setSortDirection(dir)
+            }}
+          />
+        </section>
+
+      </div>
     </DashboardLayout>
   )
 }
