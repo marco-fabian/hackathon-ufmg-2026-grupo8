@@ -34,6 +34,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Claude Code (configs locais do usuário)
+.claude/
+
 # Modelos e checkpoints pesados
 *.bin
 *.pt

@@ -1,51 +1,93 @@
-# Setup e Execução
-
-> Preencha este arquivo com as instruções específicas da sua solução.
-
----
+# Setup e Execução — Grupo 8
 
 ## Pré-requisitos
 
-Liste aqui as dependências necessárias para rodar a solução:
-
-- [ ] ...
-- [ ] ...
-
-## Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto com as variáveis necessárias:
-
-```env
-# Exemplo — adapte conforme sua solução
-OPENAI_API_KEY=sua_chave_aqui
-```
-
-> **Nunca commite o arquivo `.env` com credenciais reais.**  
-> Um arquivo `.env.example` com as variáveis (sem valores) já está incluído neste repo.
+- Python 3.11+
+- Chave da OpenAI (fornecida pela organização do hackathon)
+- Arquivos de dados fornecidos pela organização em `data/`:
+  - `Hackaton_Enter_Base_Candidatos.xlsx` (obrigatório)
+  - `Caso_01/` e `Caso_02/` com PDFs (opcional, para demo do IFP v2)
 
 ## Instalação
 
 ```bash
-# Descreva aqui os passos de instalação
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS/Linux
+source .venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+## Variáveis de Ambiente
+
+```bash
+cp .env.example .env
+# Edite .env e preencha OPENAI_API_KEY
 ```
 
 ## Execução
 
+### 1. Explorar a base (reproduz os achados do CLAUDE.md)
+
 ```bash
-# Descreva aqui como rodar a solução
+python src/explore.py
 ```
 
-## Dados
+Imprime distribuição de outcome, lift por documento, escada qtd-docs × êxito e top combinações. Sem side-effects.
 
-Coloque os arquivos de dados fornecidos na pasta `data/`. Consulte [`data/README.md`](./data/README.md) para instruções detalhadas.
+### 2. Calcular o IFP v1 (presença-based, 60k processos)
 
-## Estrutura do Projeto
+```bash
+python src/ifp_v1_heuristico.py
+```
+
+- Valida os dois casos-exemplo (sanity check).
+- Roda em batch sobre os 60k processos.
+- Salva `data/ifp_v1.csv` com colunas `processo, ifp_score, ifp_tier, tem_*, sinais_ausentes`.
+
+### 3. Montar o dataset de treino para o motor de decisão
+
+```bash
+python src/dataset_treino.py
+```
+
+Junta outcome + presença + IFP + split train/val (80/20 estratificado). Salva em `data/training.csv`.
+
+### 4. Rodar o IFP v2 nos casos-exemplo (LLM)
+
+```bash
+python src/demo_v2.py
+```
+
+Lê os PDFs de `data/Caso_01/` e `data/Caso_02/`, classifica por nome, extrai features via OpenAI (`gpt-4o-mini`, Structured Outputs) e compõe o IFP v2 (presença 0–60 + qualidade 0–40). Salva JSON em `docs/examples/`. Requer `OPENAI_API_KEY` no `.env`.
+
+## Estrutura
 
 ```
-├── src/          # código-fonte
-├── data/         # dados (não versionados — ver .gitignore)
-├── docs/         # apresentação e documentação
-├── .env.example  # variáveis de ambiente necessárias
-├── SETUP.md      # este arquivo
-└── README.md     # descrição do desafio
+.
+├── CLAUDE.md                         # contexto para agentes
+├── README.md                         # descrição do desafio
+├── SETUP.md                          # este arquivo
+├── requirements.txt
+├── data/                             # NÃO VERSIONADO
+│   ├── Hackaton_Enter_Base_Candidatos.xlsx
+│   ├── Caso_01/ ... Caso_02/
+│   ├── ifp_v1.csv                    # gerado por ifp_v1_heuristico.py
+│   └── training.csv                  # gerado por dataset_treino.py
+├── docs/
+│   ├── decisions/0001-ifp-v1-design.md
+│   └── schemas/ifp.json
+└── src/
+    ├── explore.py
+    ├── ifp_v1_heuristico.py          # compute_ifp_v1() + batch
+    └── dataset_treino.py
 ```
+
+## Contrato para Outros Módulos
+
+O IFP expõe o schema em [`docs/schemas/ifp.json`](docs/schemas/ifp.json). Motor de decisão e UI devem consumi-lo.
+
+- `compute_ifp_v1(subsidios: dict[str, bool]) -> IFPResult` em [`src/ifp_v1_heuristico.py`](src/ifp_v1_heuristico.py).
+- Dataset de treino pronto em `data/training.csv` (via `dataset_treino.py`).
