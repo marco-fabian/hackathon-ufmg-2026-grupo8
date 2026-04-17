@@ -23,10 +23,24 @@ COL_SUB_ASSUNTO = "Sub-assunto"
 COL_VALOR_CAUSA = "Valor da causa"
 COL_VALOR_CONDENACAO = "Valor da condenação/indenização"
 COL_RESULTADO_MACRO = "Resultado macro"
+COL_NUM_PROCESSO = "Número do processo"
 VAL_PERDA = "Não Êxito"
+
+SHEET_RESULTADOS = "Resultados dos processos"
+SHEET_SUBSIDIOS = "Subsídios disponibilizados"
+
+SUBSIDIOS_COL_MAP = {
+    "Contrato": "tem_contrato",
+    "Extrato": "tem_extrato",
+    "Comprovante de crédito": "tem_comprovante",
+    "Dossiê": "tem_dossie",
+    "Demonstrativo de evolução da dívida": "tem_demonstrativo",
+    "Laudo referenciado": "tem_laudo",
+}
 
 FEATURES_CATEGORICAS = [COL_UF, COL_SUB_ASSUNTO]
 FEATURES_NUMERICAS_BASE = [COL_VALOR_CAUSA]
+FEATURES_BOOLEANAS = list(SUBSIDIOS_COL_MAP.values())
 
 XGB_CLASSIFIER_PARAMS = {
     "n_estimators": 300,
@@ -82,6 +96,8 @@ OVERRIDE_IFP_ALTO = 0.75
 OVERRIDE_IFP_BAIXO = 0.50
 
 TARGET_ENCODING_SMOOTHING = 10.0
+
+BANCO_TREINO_CSV_PATH = PROJECT_ROOT / "data" / "banco_treino.csv"
 
 MODEL_A_PATH = MODELS_DIR / "modelo_probabilidade_perda.joblib"
 MODEL_B_PATH = MODELS_DIR / "modelo_estimativa_condenacao.joblib"

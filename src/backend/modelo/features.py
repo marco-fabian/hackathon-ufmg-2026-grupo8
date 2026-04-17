@@ -3,6 +3,15 @@
 Pipeline reproduzivel usado no treino e na inferencia. Salva o OrdinalEncoder
 e as estatisticas de target encoding para que a inferencia use exatamente a
 mesma transformacao.
+
+Features usadas:
+  - Categoricas: UF, Sub-assunto (OrdinalEncoder)
+  - Numericas:   Valor da causa
+  - Derivadas:   log_valor_causa, valor_causa_bin (tercis)
+  - Target enc:  uf_taxa_perda_hist, uf_ticket_medio_cond (smoothed, fit so no treino)
+  - Presenca:    tem_contrato, tem_extrato, tem_comprovante, tem_dossie,
+                 tem_demonstrativo, tem_laudo (aba 2 do xlsx)
+  - Agregada:    qtd_docs (soma das 6 flags)
 """
 from __future__ import annotations
 
@@ -36,10 +45,24 @@ class TargetEncodingStats:
 
 
 def carregar_base(path=cfg.DATA_PATH) -> pd.DataFrame:
-    df = pd.read_excel(path)
+    """Le as duas abas e retorna o df mesclado com os 6 booleanos + qtd_docs."""
+    df = pd.read_excel(path, sheet_name=cfg.SHEET_RESULTADOS)
     df.columns = [c.strip() for c in df.columns]
 
-    if df.isna().any().any():
+    subs = pd.read_excel(path, sheet_name=cfg.SHEET_SUBSIDIOS, header=1)
+    subs.columns = [c.strip() for c in subs.columns]
+    col_chave_subs = next(c for c in subs.columns if "rocesso" in c)
+    subs = subs.rename(columns={col_chave_subs: cfg.COL_NUM_PROCESSO, **cfg.SUBSIDIOS_COL_MAP})
+
+    cols_flags = cfg.FEATURES_BOOLEANAS
+    subs[cols_flags] = subs[cols_flags].astype(int)
+
+    df = df.merge(subs[[cfg.COL_NUM_PROCESSO] + cols_flags], on=cfg.COL_NUM_PROCESSO, how="left")
+    if df[cols_flags].isna().any().any():
+        raise ValueError("Merge com aba 2 deixou nulos em flags - chaves nao alinham.")
+
+    df["qtd_docs"] = df[cols_flags].sum(axis=1)
+    if df.drop(columns=["qtd_docs"]).isna().any().any():
         raise ValueError("Base contem valores nulos; tratamento nao implementado.")
     df["perde"] = (df[cfg.COL_RESULTADO_MACRO] == cfg.VAL_PERDA).astype(int)
     return df
@@ -114,6 +137,10 @@ def build_features(
         stats.condenacao_mediana_global
     )
 
+    for col in cfg.FEATURES_BOOLEANAS:
+        X[col] = df[col].astype(int).values
+    X["qtd_docs"] = df["qtd_docs"].astype(int).values
+
     return X, encoder, stats
 
 
@@ -124,8 +151,13 @@ def build_features_single(
     encoder: OrdinalEncoder,
     stats: TargetEncodingStats,
     valor_causa_bins: tuple[float, float],
+    subsidios: Optional[dict] = None,
 ) -> pd.DataFrame:
-    """Transforma um unico processo em DataFrame de 1 linha pronto para predicao."""
+    """Transforma um unico processo em DataFrame de 1 linha pronto para predicao.
+
+    `subsidios` e um dict com chaves em FEATURES_BOOLEANAS. Flags ausentes
+    sao tratadas como 0 (subsidio nao fornecido - alinhado com a base).
+    """
     row = pd.DataFrame(
         {cfg.COL_UF: [uf], cfg.COL_SUB_ASSUNTO: [sub_assunto]}
     )
@@ -148,6 +180,14 @@ def build_features_single(
 
     X["uf_taxa_perda_hist"] = stats.taxa_perda(uf)
     X["uf_ticket_medio_cond"] = stats.ticket_medio(uf)
+
+    subsidios = subsidios or {}
+    qtd = 0
+    for col in cfg.FEATURES_BOOLEANAS:
+        val = int(bool(subsidios.get(col, False)))
+        X[col] = val
+        qtd += val
+    X["qtd_docs"] = qtd
     return X
 
 
@@ -182,10 +222,39 @@ def calcular_bins_valor_causa(serie: pd.Series) -> tuple[float, float]:
     return q1, q2
 
 
+def salvar_banco_treino(
+    df_train: pd.DataFrame,
+    df_test: pd.DataFrame,
+    X_train: pd.DataFrame,
+    X_test: pd.DataFrame,
+) -> None:
+    """Gera data/banco_treino.csv com as colunas originais + booleanas + engineered."""
+    def _combinar(df_orig: pd.DataFrame, X: pd.DataFrame, split: str) -> pd.DataFrame:
+        out = df_orig[[
+            cfg.COL_NUM_PROCESSO, cfg.COL_UF, "Assunto", cfg.COL_SUB_ASSUNTO,
+            cfg.COL_VALOR_CAUSA, cfg.COL_VALOR_CONDENACAO,
+            cfg.COL_RESULTADO_MACRO, "Resultado micro",
+            *cfg.FEATURES_BOOLEANAS, "qtd_docs", "perde",
+        ]].reset_index(drop=True).copy()
+        eng = X[["log_valor_causa", "valor_causa_bin", "uf_taxa_perda_hist",
+                 "uf_ticket_medio_cond"]].reset_index(drop=True)
+        out = pd.concat([out, eng], axis=1)
+        out["split"] = split
+        return out
+
+    combinado = pd.concat([
+        _combinar(df_train, X_train, "train"),
+        _combinar(df_test, X_test, "test"),
+    ], ignore_index=True)
+    combinado.to_csv(cfg.BANCO_TREINO_CSV_PATH, index=False, encoding="utf-8")
+    print(f"Snapshot salvo em: {cfg.BANCO_TREINO_CSV_PATH} ({len(combinado):,} linhas, {len(combinado.columns)} cols)")
+
+
 if __name__ == "__main__":
     df = carregar_base()
     print(f"Base carregada: {len(df)} linhas")
     print(f"Taxa de perda: {df['perde'].mean():.1%}")
+    print(f"Flags presenca (mean): {df[cfg.FEATURES_BOOLEANAS].mean().to_dict()}")
     df_train, df_test = split_treino_teste(df)
     print(f"Treino: {len(df_train)} | Teste: {len(df_test)}")
 
@@ -194,6 +263,7 @@ if __name__ == "__main__":
 
     bins = calcular_bins_valor_causa(df_train[cfg.COL_VALOR_CAUSA])
     salvar_artefatos_features(encoder, stats, bins)
+    salvar_banco_treino(df_train, df_test, X_train, X_test)
 
     print(f"\nFeatures montadas: {list(X_train.columns)}")
     print(f"Shape X_train: {X_train.shape} | X_test: {X_test.shape}")

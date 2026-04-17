@@ -2,9 +2,9 @@
 `features_documentais` esperado pelo motor de decisao.
 
 O IFP extrai 6 subsidios dos PDFs e devolve um JSON rico (schema em
-docs/schemas/ifp.json). O motor, historicamente, espera um dict plano com
-5 flags + score. Este adaptador e a ponte entre os dois, mantendo o motor
-estavel enquanto o extrator evolui.
+docs/schemas/ifp.json). O motor espera:
+  - 6 flags de presenca (features de treino: tem_contrato, tem_extrato, ...)
+  - Campos semanticos opcionais para overrides (ifp, score_fraude, laudo_favoravel)
 
 Campos do IFP que NAO sao cobertos aqui (precisam de outro extrator):
   - uf, sub_assunto, valor_causa  <- ficam na peticao inicial (01_Autos)
@@ -33,26 +33,21 @@ def ifp_to_features_doc(resultado_ifp: dict) -> dict:
     ifp = resultado_ifp.get("ifp") or {}
     subs = resultado_ifp.get("subsidios") or {}
 
-    contrato_feat = _features(subs, "contrato")
     extrato_feat = _features(subs, "extrato")
-    comprovante_feat = _features(subs, "comprovante")
     dossie_feat = _features(subs, "dossie")
     laudo_feat = _features(subs, "laudo")
 
+    tem_contrato = _presente(subs, "contrato")
+    tem_extrato = _presente(subs, "extrato")
+    tem_comprovante = _presente(subs, "comprovante")
+    tem_dossie = _presente(subs, "dossie")
+    tem_demonstrativo = _presente(subs, "demonstrativo")
+    tem_laudo = _presente(subs, "laudo")
+
     ifp_score = float(ifp.get("score", 50)) / 100.0
 
-    tem_contrato_assinado = bool(
-        _presente(subs, "contrato")
-        and contrato_feat.get("assinatura_tomador_presente", False)
-    )
-
-    tipos_mov = extrato_feat.get("tipos_movimentacao") or []
-    tem_comprovante_ted = bool(
-        _presente(subs, "comprovante") or "TED" in tipos_mov
-    )
-
     laudo_favoravel = bool(
-        _presente(subs, "laudo")
+        tem_laudo
         and any(
             laudo_feat.get(flag, False)
             for flag in (
@@ -65,8 +60,7 @@ def ifp_to_features_doc(resultado_ifp: dict) -> dict:
     )
 
     assinatura_nao_confere = (
-        _presente(subs, "dossie")
-        and dossie_feat.get("assinatura_confere") is False
+        tem_dossie and dossie_feat.get("assinatura_confere") is False
     )
     destinatarios_suspeitos = bool(extrato_feat.get("destinatarios_suspeitos", False))
     indicio_de_fraude = assinatura_nao_confere or destinatarios_suspeitos
@@ -74,16 +68,20 @@ def ifp_to_features_doc(resultado_ifp: dict) -> dict:
     score_fraude = _derivar_score_fraude(
         ifp_score=ifp_score,
         indicio_de_fraude=indicio_de_fraude,
-        tem_contrato_assinado=tem_contrato_assinado,
-        tem_comprovante_ted=tem_comprovante_ted,
+        tem_contrato=tem_contrato,
+        tem_comprovante=tem_comprovante,
     )
 
     return {
+        "tem_contrato": tem_contrato,
+        "tem_extrato": tem_extrato,
+        "tem_comprovante": tem_comprovante,
+        "tem_dossie": tem_dossie,
+        "tem_demonstrativo": tem_demonstrativo,
+        "tem_laudo": tem_laudo,
         "ifp": ifp_score,
-        "tem_contrato_assinado": tem_contrato_assinado,
-        "tem_comprovante_ted": tem_comprovante_ted,
-        "laudo_favoravel": laudo_favoravel,
         "score_fraude": score_fraude,
+        "laudo_favoravel": laudo_favoravel,
         "indicio_de_fraude": indicio_de_fraude,
     }
 
@@ -102,8 +100,8 @@ def _derivar_score_fraude(
     *,
     ifp_score: float,
     indicio_de_fraude: bool,
-    tem_contrato_assinado: bool,
-    tem_comprovante_ted: bool,
+    tem_contrato: bool,
+    tem_comprovante: bool,
 ) -> float:
     """O IFP nao fornece score_fraude direto. Derivamos de sinais do JSON.
 
@@ -113,6 +111,6 @@ def _derivar_score_fraude(
     """
     if indicio_de_fraude:
         return 0.85
-    if tem_contrato_assinado and tem_comprovante_ted and ifp_score >= 0.70:
+    if tem_contrato and tem_comprovante and ifp_score >= 0.70:
         return 0.10
     return round(1.0 - ifp_score, 3)

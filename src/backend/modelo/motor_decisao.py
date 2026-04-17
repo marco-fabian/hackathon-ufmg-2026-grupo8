@@ -90,14 +90,15 @@ def aplicar_overrides_documentais(
         if ifp_f <= cfg.OVERRIDE_IFP_BAIXO:
             return Decisao.ACORDO, RazaoOverride.IFP_FRACO
 
-    tem_contrato = bool(features_doc.get("tem_contrato_assinado", False))
-    tem_ted = bool(features_doc.get("tem_comprovante_ted", False))
-    laudo_favoravel = bool(features_doc.get("laudo_favoravel", False))
+    tem_contrato = bool(features_doc.get("tem_contrato", False))
+    tem_comprovante = bool(features_doc.get("tem_comprovante", False))
+    tem_laudo = bool(features_doc.get("tem_laudo", False))
+    laudo_favoravel = bool(features_doc.get("laudo_favoravel", tem_laudo))
     score_fraude = float(features_doc.get("score_fraude", 0.5))
 
     if (
         tem_contrato
-        and tem_ted
+        and tem_comprovante
         and laudo_favoravel
         and score_fraude < cfg.OVERRIDE_SCORE_FRAUDE_BAIXO
     ):
@@ -229,6 +230,7 @@ class MotorDecisao:
             encoder=self.encoder,
             stats=self.stats,
             valor_causa_bins=self.valor_causa_bins,
+            subsidios=features_documentais,
         )
 
         p_l, vc, faixa = self._prever(X)
@@ -457,8 +459,12 @@ def _demo_casos(motor: MotorDecisao) -> None:
             "Golpe",
             15000.0,
             {
-                "tem_contrato_assinado": True,
-                "tem_comprovante_ted": True,
+                "tem_contrato": True,
+                "tem_extrato": True,
+                "tem_comprovante": True,
+                "tem_dossie": True,
+                "tem_demonstrativo": True,
+                "tem_laudo": True,
                 "laudo_favoravel": True,
                 "score_fraude": 0.15,
             },
@@ -468,8 +474,12 @@ def _demo_casos(motor: MotorDecisao) -> None:
             "Golpe",
             12000.0,
             {
-                "tem_contrato_assinado": False,
-                "tem_comprovante_ted": False,
+                "tem_contrato": False,
+                "tem_extrato": False,
+                "tem_comprovante": False,
+                "tem_dossie": False,
+                "tem_demonstrativo": False,
+                "tem_laudo": False,
                 "laudo_favoravel": False,
                 "score_fraude": 0.85,
             },
