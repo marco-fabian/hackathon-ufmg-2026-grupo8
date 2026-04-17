@@ -63,6 +63,8 @@ export interface Processo {
   scoreRisco: number
   /** Recomendação de acordo sugerida pela IA (R$) */
   valorAcordoSugerido: number | null
+  /** Múltiplas sugestões de valor simuladas pela IA com probabilidade de sucesso */
+  sugestoesValor?: { valor: number; probabilidadeSucesso: number }[]
 }
 
 /**
@@ -142,6 +144,11 @@ export const mockProcessos: Processo[] = [
     prioridade: 'alta',
     scoreRisco: calcScoreRisco('Parcial procedência', 13534, 7714.38),
     valorAcordoSugerido: calcAcordoSugerido('Não Êxito', 7714.38),
+    sugestoesValor: [
+      { valor: 3500.00, probabilidadeSucesso: 85 },
+      { valor: 2500.00, probabilidadeSucesso: 60 },
+      { valor: 1500.00, probabilidadeSucesso: 30 }
+    ]
   },
   // ── Linha 2 ───────────────────────────────────────────────────────────────
   {
