@@ -44,20 +44,14 @@ function RoleSwitcher() {
         onClick={toggleRole}
         aria-label={`Alternar para visão ${isAdvogado ? 'Banco' : 'Advogado'}`}
         style={{
-          backgroundColor: isAdvogado
-            ? 'rgba(99,102,241,0.15)'
-            : 'rgba(16,185,129,0.15)',
-          border: isAdvogado
-            ? '1px solid rgba(99,102,241,0.35)'
-            : '1px solid rgba(16,185,129,0.35)',
+          backgroundColor: 'rgba(234,88,12,0.15)',
+          border: '1px solid rgba(234,88,12,0.35)',
         }}
         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all hover:opacity-90"
       >
         {/* Track */}
         <div
-          style={{
-            backgroundColor: isAdvogado ? 'rgb(99,102,241)' : 'rgb(16,185,129)',
-          }}
+          style={{ backgroundColor: 'rgb(234,88,12)' }}
           className="relative w-9 h-5 rounded-full flex-shrink-0 transition-colors duration-300"
         >
           <span
@@ -70,13 +64,13 @@ function RoleSwitcher() {
         <span className="flex items-center gap-2 text-sm font-semibold">
           {isAdvogado ? (
             <>
-              <Briefcase size={14} style={{ color: 'rgb(129,140,248)' }} />
-              <span style={{ color: 'rgb(199,210,254)' }}>Visão Advogado</span>
+              <Briefcase size={14} style={{ color: 'rgb(251,146,60)' }} />
+              <span style={{ color: 'rgb(254,215,170)' }}>Visão Advogado</span>
             </>
           ) : (
             <>
-              <Building2 size={14} style={{ color: 'rgb(52,211,153)' }} />
-              <span style={{ color: 'rgb(167,243,208)' }}>Visão Banco</span>
+              <Building2 size={14} style={{ color: 'rgb(251,146,60)' }} />
+              <span style={{ color: 'rgb(254,215,170)' }}>Visão Banco</span>
             </>
           )}
         </span>

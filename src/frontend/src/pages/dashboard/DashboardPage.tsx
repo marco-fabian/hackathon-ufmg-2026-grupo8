@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Scale, Landmark, FileText, AlertCircle, Calendar, X } from 'lucide-react'
+import { Clock, Activity, UserCheck, Zap, Calendar, X } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DataTableBase, type ColumnDef, type SortDirection } from '@/components/data/DataTableBase'
 import { ChartCardBase } from '@/components/data/ChartCardBase'
@@ -8,23 +8,18 @@ import { mockProcessos } from '@/data/mockData'
 
 // ─── LÓGICA DE DADOS ──────────────────────────────────────────────────────────
 
-function parseExito(resultadoMicro: string): 'Êxito' | 'Não Êxito' {
-  const norm = resultadoMicro.toLowerCase()
-  if (norm.includes('improcede') || norm.includes('extin') || norm.includes('acordo')) return 'Êxito'
-  return 'Não Êxito'
-}
 
 function checkAderente(statusIA: string, decisaoAdv: string): boolean {
   return String(statusIA).toLowerCase() === String(decisaoAdv).toLowerCase()
 }
 
-const COLOR_SUCCESS = '#10B981'
-const COLOR_DANGER  = '#EF4444'
-const COLOR_BLUE    = '#3B82F6'
-const COLOR_AMBER   = '#F59E0B'
-const COLOR_PURPLE  = '#8B5CF6'
+const COLOR_SUCCESS = '#EA580C'   // laranja principal
+const COLOR_DANGER  = '#1A1A1A'   // preto
+const COLOR_BLUE    = '#F97316'   // laranja médio
+const COLOR_AMBER   = '#FB923C'   // laranja claro
+const COLOR_PURPLE  = '#7C2D12'   // marrom-laranja escuro
 
-type ChartType = 'acuracia' | 'mes-a-mes' | 'economia'
+type ChartType = 'acuracia' | 'mes-a-mes' | 'economia' | 'por-uf'
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
@@ -80,11 +75,12 @@ function KpiCard({ label, value, icon, subtitle }: KpiCardProps) {
 
 const COLUMNS: ColumnDef<Record<string, unknown>>[] = [
   { key: 'numeroCaso', header: 'Nº Processo', sortable: true, width: '220px' },
-  { key: 'uf', header: 'UF', width: '60px' },
-  { key: 'resultadoMicro', header: 'Resultado (Base)', sortable: true },
+  { key: 'uf', header: 'UF', width: '100px', filterType: 'select' },
+  { key: 'resultadoMicro', header: 'Resultado (Base)', sortable: true, filterType: 'select' },
   {
     key: 'decisaoAdvogado',
     header: 'Ação Atual',
+    filterType: 'select',
     render: (val) => (
       <span style={{ fontSize: '12px', fontWeight: 500, textTransform: 'capitalize' }}>
         {String(val)}
@@ -144,15 +140,19 @@ export default function DashboardPage() {
     return base
   }, [userRole, processosAtuais, filterMonth, filterDay])
 
-  // ─── KPI globais ─────────────────────────────────────────────────────────
-  const volumeTotal    = mockProcessos.length
-  const valorTotalRisco = mockProcessos.reduce((acc, p) => acc + p.valorCausa, 0)
+  // ─── KPI principais ──────────────────────────────────────────────────────
+  const base = userRole === 'banco' ? mockProcessos : processosAtuais
+  const CURRENT_MONTH = '2026-04'
 
-  // ─── KPI advogado ─────────────────────────────────────────────────────────
-  const pendentesAdvogado = processosAtuais.filter(p => p.decisaoAdvogado === 'pendente').length
-  const economizadoAdvogado = processosAtuais
-    .filter(p => parseExito(p.resultadoMicro) === 'Êxito' || p.decisaoAdvogado === 'acordo')
-    .reduce((acc, p) => acc + Math.max(0, p.valorCausa - p.valorCondenacao), 0)
+  const aguardandoJulgamento = base.filter(p => p.statusDaIA === 'aguardando_subsidios').length
+  const paraAvaliar = base.filter(p => p.decisaoAdvogado === 'pendente').length
+  const analisadosNoMes = base.filter(
+    p => p.decisaoAdvogado !== 'pendente' && p.dataEntrada.startsWith(CURRENT_MONTH)
+  ).length
+  const economizadoMotor = mockProcessos
+    .filter(p => p.valorAcordoSugerido !== null)
+    .reduce((acc, p) => acc + Math.max(0, p.valorCondenacao - (p.valorAcordoSugerido ?? 0)), 0)
+
 
   // ─── Dados: Acurácia IA vs Advogado ──────────────────────────────────────
   const acuraciaData = useMemo(() => {
@@ -177,6 +177,17 @@ export default function DashboardPage() {
     })
     const rows = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v)
     return rows.length > 0 ? rows : [{ name: '—', 'Em Andamento': 0, Finalizados: 0 }]
+  }, [filteredBase])
+
+  // ─── Dados: Processos por UF ─────────────────────────────────────────────
+  const ufData = useMemo(() => {
+    const byUf: Record<string, { name: string; Processos: number; Finalizados: number }> = {}
+    filteredBase.forEach(p => {
+      if (!byUf[p.uf]) byUf[p.uf] = { name: p.uf, Processos: 0, Finalizados: 0 }
+      byUf[p.uf].Processos++
+      if (p.statusDaIA === 'concluido') byUf[p.uf].Finalizados++
+    })
+    return Object.values(byUf).sort((a, b) => b.Processos - a.Processos)
   }, [filteredBase])
 
   // ─── Dados: Economia IA ───────────────────────────────────────────────────
@@ -204,6 +215,7 @@ export default function DashboardPage() {
     ...(userRole === 'banco' ? [{ id: 'acuracia' as ChartType, label: 'Acurácia IA vs Advogado' }] : []),
     { id: 'mes-a-mes', label: 'Processos Mês a Mês' },
     { id: 'economia',  label: 'Economia com IA' },
+    { id: 'por-uf',    label: 'Processos por UF' },
   ]
 
   const hasFilter = filterMonth || filterDay
@@ -218,49 +230,39 @@ export default function DashboardPage() {
     <DashboardLayout pageTitle={`Dashboard · ${userRole === 'banco' ? 'Visão Executiva (Banco)' : 'Meu Painel (Advogado)'}`}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', transition: 'all 0.3s ease' }}>
 
-        {/* ─── VISÃO GERAL E RISCO ─── */}
+        {/* ─── MÉTRICAS PRINCIPAIS ─── */}
         <section>
           <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
             Visão Geral e Risco
           </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
             <KpiCard
-              label="Volume Total (Banco)"
-              value={String(volumeTotal)}
-              icon={<Scale size={18} />}
-              subtitle="Quantidade global de processos em trâmite"
+              label="Aguardando Julgamento"
+              value={String(aguardandoJulgamento)}
+              icon={<Clock size={18} />}
+              subtitle="Processos aguardando decisão do juiz"
             />
             <KpiCard
-              label="Valor Total em Risco"
-              value={formatCurrency(valorTotalRisco)}
-              icon={<Landmark size={18} />}
-              subtitle="Soma integral do valor de todas as causas"
+              label="Para Avaliar"
+              value={String(paraAvaliar)}
+              icon={<Activity size={18} />}
+              subtitle="Processos na fila aguardando avaliação do advogado"
+            />
+            <KpiCard
+              label="Analisados pelo Advogado (mês)"
+              value={String(analisadosNoMes)}
+              icon={<UserCheck size={18} />}
+              subtitle="Processos com decisão registrada em abril/2026"
+            />
+            <KpiCard
+              label="Valor Economizado dos Processos"
+              value={formatCurrency(economizadoMotor)}
+              icon={<Zap size={18} />}
+              subtitle="Economia gerada pela sugestão de acordo da IA"
             />
           </div>
         </section>
 
-        {/* ─── PRODUTIVIDADE (ADVOGADO) ─── */}
-        {userRole === 'advogado' && (
-          <section style={{ animation: 'fadeIn 0.4s ease-out' }}>
-            <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-              Minha Produtividade (Dr(a). Rafael Silva)
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
-              <KpiCard
-                label="Processos Pendentes"
-                value={String(pendentesAdvogado)}
-                icon={<AlertCircle size={18} />}
-                subtitle="Aguardando a sua análise ou decisão"
-              />
-              <KpiCard
-                label="Valor Economizado (Acordos/Êxitos)"
-                value={formatCurrency(economizadoAdvogado)}
-                icon={<FileText size={18} />}
-                subtitle="Redução de passivo gerada (Valor Causa - Condenação)"
-              />
-            </div>
-          </section>
-        )}
 
         {/* ─── GRÁFICOS ANALÍTICOS (SELECIONÁVEIS) ─── */}
         <section style={{ animation: 'fadeIn 0.4s ease-out' }}>
@@ -410,6 +412,19 @@ export default function DashboardPage() {
                 { dataKey: 'Condenação Total',   label: 'Condenação Total',   color: COLOR_DANGER  },
                 { dataKey: 'Acordo Sugerido IA', label: 'Acordo Sugerido IA', color: COLOR_PURPLE  },
                 { dataKey: 'Economia Gerada',    label: 'Economia Gerada',    color: COLOR_SUCCESS },
+              ]}
+            />
+          )}
+
+          {selectedChart === 'por-uf' && (
+            <ChartCardBase
+              title="Processos por UF"
+              subtitle="Distribuição de processos por Unidade Federativa — total e finalizados"
+              data={ufData}
+              xAxisKey="name"
+              series={[
+                { dataKey: 'Processos',   label: 'Total',       color: COLOR_BLUE    },
+                { dataKey: 'Finalizados', label: 'Finalizados', color: COLOR_SUCCESS },
               ]}
             />
           )}
