@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Scale,
   BrainCircuit,
-  Settings,
   Bell,
   LogOut,
   Building2,
@@ -159,22 +158,6 @@ function Sidebar() {
           )
         })}
 
-        <div className="pt-4">
-          <p
-            style={{ color: 'var(--color-text-muted)' }}
-            className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest"
-          >
-            Sistema
-          </p>
-          <a
-            href="#"
-            style={{ color: 'var(--color-text-muted)' }}
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium hover:bg-white/10 hover:text-white transition-all"
-          >
-            <Settings size={18} style={{ opacity: 0.7 }} />
-            Configurações
-          </a>
-        </div>
       </nav>
 
       {/* Role Switcher */}
