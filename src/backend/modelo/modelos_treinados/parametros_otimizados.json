@@ -1,0 +1,58 @@
+{
+  "cp": 1408.7200400000002,
+  "custo_defender_tudo_backtest": 55685210.0994,
+  "n_processos_backtest": 12000,
+  "politicas": {
+    "Conservadora": {
+      "taxa_alvo": 0.1,
+      "alpha": 0.5,
+      "limiar": 6000.0,
+      "taxa_acordo_efetiva": 0.15275,
+      "economia_total": 7549985.253605589,
+      "economia_por_processo": 629.1654378004657,
+      "economia_pct": 0.13558331269880472,
+      "custo_total": 48135224.84579441
+    },
+    "Moderada": {
+      "taxa_alvo": 0.25,
+      "alpha": 0.5,
+      "limiar": 5000.0,
+      "taxa_acordo_efetiva": 0.3140833333333333,
+      "economia_total": 13203100.470785491,
+      "economia_por_processo": 1100.2583725654576,
+      "economia_pct": 0.2371024630636664,
+      "custo_total": 42482109.62861451
+    },
+    "Balanceada": {
+      "taxa_alvo": 0.35,
+      "alpha": 0.5,
+      "limiar": 5000.0,
+      "taxa_acordo_efetiva": 0.3140833333333333,
+      "economia_total": 13203100.470785491,
+      "economia_por_processo": 1100.2583725654576,
+      "economia_pct": 0.2371024630636664,
+      "custo_total": 42482109.62861451
+    },
+    "Agressiva": {
+      "taxa_alvo": 0.6,
+      "alpha": 0.5,
+      "limiar": 4000.0,
+      "taxa_acordo_efetiva": 0.5555,
+      "economia_total": 20293659.18847239,
+      "economia_por_processo": 1691.1382657060326,
+      "economia_pct": 0.3644353528027912,
+      "custo_total": 35391550.91092761
+    },
+    "Maxima": {
+      "taxa_alvo": 1.0,
+      "alpha": 0.5,
+      "limiar": 500.0,
+      "taxa_acordo_efetiva": 1.0,
+      "economia_total": 28750104.51009308,
+      "economia_por_processo": 2395.842042507757,
+      "economia_pct": 0.5162969567462018,
+      "custo_total": 26935105.589306917
+    }
+  },
+  "policy_default": "Balanceada"
+}
