@@ -1,0 +1,128 @@
+{
+  "processo_id": "0654321-09.2024.8.04.0001",
+  "autos_features": {
+    "nome_autor": "JOSÉ RAIMUNDO OLIVEIRA COSTA",
+    "cpf_autor": "789.123.456-78",
+    "uf_comarca": "AM",
+    "valor_causa": 25000.0,
+    "tipo_alegacao": "golpe_especifico",
+    "tem_boletim_ocorrencia": true,
+    "menciona_conta_terceiro": true,
+    "banco_destino_credito": "Caixa Econômica Federal",
+    "afirma_nao_ter_conta_no_banco": true,
+    "menciona_liveness_ausente": false,
+    "menciona_canal_digital": true,
+    "autor_idoso": true,
+    "autor_aposentado": true,
+    "pede_dano_moral": true,
+    "pede_repeticao_indebito": true
+  },
+  "ifp": {
+    "processo_id": "0654321-09.2024.8.04.0001",
+    "ifp": {
+      "score": 42,
+      "tier": "FRACO",
+      "versao": "v2",
+      "componentes": {
+        "presenca": 25,
+        "qualidade": 17
+      }
+    },
+    "subsidios": {
+      "contrato": {
+        "presente": false,
+        "peso_aplicado": 0,
+        "features": null
+      },
+      "extrato": {
+        "presente": false,
+        "peso_aplicado": 0,
+        "features": null
+      },
+      "comprovante": {
+        "presente": true,
+        "peso_aplicado": 9,
+        "features": {
+          "numero_contrato": "603827451",
+          "cpf_tomador": "789.123.456-78",
+          "valor_operacao": 8500.0,
+          "qtd_parcelas": 84,
+          "taxa_juros_am": 1.76,
+          "cet_aa": 27.19,
+          "data_contratacao": "2023-07-18",
+          "canal_contratacao": "digital_app",
+          "forma_liberacao": "credito_conta_corrente",
+          "instituicao_depositaria": "Caixa Econômica Federal"
+        }
+      },
+      "demonstrativo": {
+        "presente": true,
+        "peso_aplicado": 7,
+        "features": {
+          "numero_contrato": "603827451",
+          "valor_financiado": 8500.0,
+          "qtd_parcelas_total": 84,
+          "qtd_parcelas_pagas": 8,
+          "qtd_parcelas_em_aberto": 76,
+          "data_primeira_parcela": "2023-08-18",
+          "data_primeira_inadimplencia": "2024-04-18"
+        }
+      },
+      "dossie": {
+        "presente": false,
+        "peso_aplicado": 0,
+        "features": null
+      },
+      "laudo": {
+        "presente": true,
+        "peso_aplicado": 9,
+        "features": {
+          "numero_contrato": "603827451",
+          "canal_contratacao": "digital_app",
+          "situacao_atual": "ATIVO - EM DISCUSSÃO JUDICIAL",
+          "tem_gravacao_voz": false,
+          "tem_biometria_facial": true,
+          "tem_device_fingerprint": true,
+          "tem_geolocalizacao": true,
+          "tem_ip_registrado": true,
+          "tem_assinatura_manuscrita": false,
+          "correspondente_bancario": null
+        }
+      }
+    },
+    "sinais_fortes": [
+      "demonstrativo_8_parcelas_pagas",
+      "laudo_evidencia_digital(biometria|device_fingerprint|geolocalizacao)"
+    ],
+    "sinais_ausentes": [
+      "contrato",
+      "extrato",
+      "dossie"
+    ],
+    "reasoning_curto": "IFP v2 = 42 (FRACO). Presença 25/60 (falta: contrato, extrato, dossie), qualidade 17/40."
+  },
+  "decisao": {
+    "processo_id": "0654321-09.2024.8.04.0001",
+    "decisao": "ACORDO",
+    "confianca": "ALTA",
+    "ifp_score": 42,
+    "ifp_tier": "FRACO",
+    "red_flags_criticos": [
+      "BO registrado pelo autor",
+      "Autor afirma não possuir conta no banco réu",
+      "Crédito alegadamente depositado em conta de terceiro"
+    ],
+    "red_flags_nao_criticos": [
+      "Contratação por canal digital (app/internet)",
+      "Perfil de vulnerabilidade (idoso)",
+      "Perfil de vulnerabilidade (aposentado)"
+    ],
+    "valor_sugerido": {
+      "valor_causa": 25000.0,
+      "condenacao_esperada": 17500.0,
+      "proposta_acordo": 7525.0,
+      "formula": "valor_causa × 0.7 × 0.43 = R$ 7,525.00"
+    },
+    "racional": "IFP 42 (FRACO) — documentação insuficiente. Red flags críticos: BO registrado pelo autor; Autor afirma não possuir conta no banco réu; Crédito alegadamente depositado em conta de terceiro. Sinalizações de contexto: Contratação por canal digital (app/internet); Perfil de vulnerabilidade (idoso); Perfil de vulnerabilidade (aposentado). Proposta de acordo: R$ 7,525.00 (valor_causa × 0.7 × 0.43 = R$ 7,525.00)."
+  }
+}

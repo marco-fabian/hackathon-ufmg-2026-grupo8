@@ -23,8 +23,8 @@ A solução se organiza em módulos que colaboram via contratos JSON. Cada integ
 - **Normalização + IFP (Índice de Força Probatória)** — responsabilidade desta branch `backend`. Duas versões:
   - **IFP v1** (`src/ifp_v1_heuristico.py`): presença-based, roda sobre o xlsx de 60k; usado no dataset de treino e na produção histórica. Sem LLM.
   - **IFP v2** (`src/ifp_v2.py` + `src/extractors/`): extrai features dos PDFs via OpenAI Structured Outputs (`gpt-4o-mini`); demo-only porque só há PDFs nos 2 casos-exemplo. Adiciona componente de qualidade (0–40) ao score de presença (0–60).
-- **Motor de decisão** — consome `data/training.csv` (19 colunas, split 80/20 estratificado) e `ifp_score`/`ifp_tier` como features principais; decide defesa/acordo e sugere valor.
-- **Interface do advogado (front-end)** — consome `docs/schemas/ifp.json` + exemplos em `docs/examples/ifp_v2_*.json`; renderiza o "termômetro" e a recomendação.
+- **Motor de decisão** (`src/motor_decisao.py`) — consome o IFP v2 + `AutosFeatures` (petição inicial extraída por `src/extractors/autos.py`) e aplica regras por tier: FORTE → DEFENDER, FRACO → ACORDO, MÉDIO → regra 2×2 (Contrato × Extrato). Red flags críticos na petição (BO registrado, autor afirma não ter conta no banco, crédito em conta de terceiro) podem rebaixar decisão em MÉDIO ou diminuir confiança em FORTE. Proposta de acordo = `valor_causa × 0,70 × 0,43` (calibrado empiricamente: razão média condenação/causa na base = 0,704). Pipeline end-to-end em `src/demo_motor.py`. Alternativa futura: XGBoost treinado em `data/training.csv` (já preparado, não implementado).
+- **Interface do advogado (front-end)** — consome `docs/schemas/ifp.json` + exemplos em `docs/examples/ifp_v2_*.json` e `docs/examples/decisao_caso_*.json`; renderiza o "termômetro" e a recomendação.
 
 O IFP é o ponto de acoplamento entre as três camadas. Schema estável em [docs/schemas/ifp.json](docs/schemas/ifp.json).
 
