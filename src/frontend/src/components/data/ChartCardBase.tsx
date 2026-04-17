@@ -8,9 +8,8 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  type TooltipProps,
 } from 'recharts'
-import type { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent'
+import type { ValueType } from 'recharts/types/component/DefaultTooltipContent'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 export interface ChartSeries {
@@ -42,12 +41,21 @@ const DEFAULT_COLORS = [
 ]
 
 // ─── Custom Tooltip ───────────────────────────────────────────────────────
-function CustomTooltip({
-  active,
-  payload,
-  label,
-  formatValue,
-}: TooltipProps<ValueType, NameType> & { formatValue?: (v: number) => string }) {
+interface TooltipEntry {
+  dataKey?: string | number
+  name?: string
+  value?: ValueType
+  color?: string
+}
+
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: TooltipEntry[]
+  label?: string | number
+  formatValue?: (v: number) => string
+}
+
+function CustomTooltip({ active, payload, label, formatValue }: CustomTooltipProps) {
   if (!active || !payload?.length) return null
   return (
     <div
@@ -60,13 +68,15 @@ function CustomTooltip({
         fontSize: '12px',
       }}
     >
-      <p style={{ color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>{label}</p>
-      {payload.map((entry) => (
-        <div key={entry.dataKey} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
+      <p style={{ color: 'var(--color-text-secondary)', fontWeight: 600, marginBottom: '6px' }}>
+        {String(label ?? '')}
+      </p>
+      {payload.map((entry, idx) => (
+        <div key={String(entry.dataKey ?? idx)} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
           <span style={{ width: '8px', height: '8px', borderRadius: '2px', backgroundColor: entry.color, display: 'inline-block' }} />
           <span style={{ color: 'var(--color-text-secondary)' }}>{entry.name}:</span>
           <span style={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
-            {formatValue ? formatValue(entry.value as number) : entry.value}
+            {formatValue ? formatValue(entry.value as number) : String(entry.value ?? '')}
           </span>
         </div>
       ))}
@@ -174,7 +184,14 @@ export function ChartCardBase({
                 tickFormatter={formatValue}
               />
               <Tooltip
-                content={(props) => <CustomTooltip {...props} formatValue={formatValue} />}
+                content={({ active, payload, label }) => (
+                  <CustomTooltip
+                    active={active}
+                    payload={payload as unknown as TooltipEntry[] | undefined}
+                    label={label}
+                    formatValue={formatValue}
+                  />
+                )}
                 cursor={{ fill: 'var(--color-bg-subtle)', radius: 4 }}
               />
               {series.length > 1 && (

@@ -44,10 +44,8 @@ function SkeletonRow({ colCount }: { colCount: number }) {
   return (
     <tr>
       {Array.from({ length: colCount }).map((_, i) => (
-        <td key={i} className="px-4 py-3">
+        <td key={i} style={{ padding: '12px 16px' }}>
           <div
-            style={{ backgroundColor: 'var(--color-bg-subtle)', borderRadius: '4px' }}
-            className="h-4 animate-pulse"
             style={{
               backgroundColor: 'var(--color-bg-subtle)',
               borderRadius: '4px',
