@@ -4,11 +4,15 @@
   "sub_assunto": "Genérico",
   "valor_causa": 20000.0,
   "features_documentais": {
+    "tem_contrato": true,
+    "tem_extrato": true,
+    "tem_comprovante": true,
+    "tem_dossie": true,
+    "tem_demonstrativo": true,
+    "tem_laudo": true,
     "ifp": 1.0,
-    "tem_contrato_assinado": true,
-    "tem_comprovante_ted": true,
-    "laudo_favoravel": true,
     "score_fraude": 0.2,
+    "laudo_favoravel": true,
     "indicio_de_fraude": false
   }
 }

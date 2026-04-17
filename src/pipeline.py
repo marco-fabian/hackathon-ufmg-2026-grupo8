@@ -18,13 +18,22 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+SRC = ROOT / "src"
+for p in (str(SRC), str(ROOT)):
+    if p not in sys.path:
+        sys.path.insert(0, p)
 
-from src.agentes import AnaliseFraude, analisar_fraude  # noqa: E402
+# Shim para compatibilidade com os .joblib do motor: o pickle referencia
+# TargetEncodingStats em __main__ (o script que treinou), não no módulo
+# features. Registramos a classe em __main__ antes do joblib.load.
+from src.backend.modelo.features import TargetEncodingStats  # noqa: E402
+sys.modules["__main__"].TargetEncodingStats = TargetEncodingStats  # type: ignore[attr-defined]
+
+from agentes import AnaliseFraude, analisar_fraude  # noqa: E402
+from extractors import AutosFeatures, extract_autos  # noqa: E402
+from ifp_v2 import compute_ifp_v2  # noqa: E402
 from src.backend.modelo.adaptador_ifp import ifp_to_features_doc  # noqa: E402
 from src.backend.modelo.motor_decisao import MotorDecisao  # noqa: E402
-from src.extractors import AutosFeatures, extract_autos  # noqa: E402
-from src.ifp_v2 import compute_ifp_v2  # noqa: E402
 
 
 class PayloadExtrator(TypedDict):

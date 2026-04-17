@@ -6,11 +6,15 @@
     "sub_assunto": "Genérico",
     "valor_causa": 20000.0,
     "features_documentais": {
+      "tem_contrato": true,
+      "tem_extrato": true,
+      "tem_comprovante": true,
+      "tem_dossie": true,
+      "tem_demonstrativo": true,
+      "tem_laudo": true,
       "ifp": 1.0,
-      "tem_contrato_assinado": true,
-      "tem_comprovante_ted": true,
-      "laudo_favoravel": true,
       "score_fraude": 0.2,
+      "laudo_favoravel": true,
       "indicio_de_fraude": false
     }
   },
@@ -23,7 +27,7 @@
       "dossie_assinatura_confere",
       "laudo_evidencia_digital(gravacao_voz)"
     ],
-    "justificativa": "O cenário apresenta diversos sinais de legitimidade, como a movimentação do dinheiro e a confirmação da assinatura. Além disso, o autor pagou uma quantidade significativa de parcelas, o que reforça a consistência da operação."
+    "justificativa": "O score de fraude é baixo, pois existem evidências sólidas de legitimidade, como a movimentação do dinheiro e a confirmação da assinatura. Além disso, o autor pagou uma quantidade significativa de parcelas antes de questionar a operação."
   },
   "ifp": {
     "processo_id": "0801234-56.2024.8.10.0001",
@@ -140,17 +144,17 @@
   },
   "decisao": {
     "decisao": "DEFESA",
-    "probabilidade_perda": 0.17637310089382452,
-    "valor_condenacao_estimado": 9308.078125,
+    "probabilidade_perda": 0.0524681619826967,
+    "valor_condenacao_estimado": 7871.48046875,
     "valor_condenacao_faixa": [
-      5649.13037109375,
-      16625.95703125
+      5775.48974609375,
+      13063.98046875
     ],
-    "custo_esperado_defesa": 3050.414642268226,
+    "custo_esperado_defesa": 1821.7221522780085,
     "valor_acordo_sugerido": null,
     "override_aplicado": true,
     "razao_override": "IFP_FORTE",
     "policy": "Balanceada",
-    "explicacao": "Decisao: DEFESA. Probabilidade de perda prevista: 17.6%. Condenacao estimada (se perder): R$ 9,308.08 (faixa IC 80%: R$ 5,649.13 a R$ 16,625.96). Custo esperado da defesa: R$ 3,050.41. A decisao foi sobreposta pela forca probatoria dos subsidios (IFP = 1.00): documentacao agregada acima do limiar de 0.75. Recomenda-se DEFESA independente do modelo ML. Politica aplicada: Balanceada."
+    "explicacao": "Decisao: DEFESA. Probabilidade de perda prevista: 5.2%. Condenacao estimada (se perder): R$ 7,871.48 (faixa IC 80%: R$ 5,775.49 a R$ 13,063.98). Custo esperado da defesa: R$ 1,821.72. A decisao foi sobreposta pela forca probatoria dos subsidios (IFP = 1.00): documentacao agregada acima do limiar de 0.75. Recomenda-se DEFESA independente do modelo ML. Politica aplicada: Balanceada."
   }
 }

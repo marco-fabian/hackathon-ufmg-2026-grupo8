@@ -6,11 +6,15 @@
     "sub_assunto": "Golpe",
     "valor_causa": 25000.0,
     "features_documentais": {
+      "tem_contrato": false,
+      "tem_extrato": false,
+      "tem_comprovante": true,
+      "tem_dossie": false,
+      "tem_demonstrativo": true,
+      "tem_laudo": true,
       "ifp": 0.42,
-      "tem_contrato_assinado": false,
-      "tem_comprovante_ted": true,
-      "laudo_favoravel": true,
       "score_fraude": 0.3,
+      "laudo_favoravel": true,
       "indicio_de_fraude": false
     }
   },
@@ -18,16 +22,15 @@
     "score_fraude": 0.3,
     "indicadores_fraude": [
       "Falta de contrato",
-      "Falta de extrato",
-      "Canal digital sem dossiê"
+      "Falta de extrato"
     ],
     "sinais_protetivos": [
       "8 parcelas pagas",
-      "Laudo com biometria",
-      "Laudo com device fingerprint",
-      "Laudo com geolocalização"
+      "Canal digital com biometria",
+      "Device fingerprint",
+      "Geolocalização"
     ],
-    "justificativa": "Embora existam sinais protetivos, a ausência de contrato e extrato, juntamente com a falta de um dossiê, indicam um cenário de risco. O score reflete a presença de algumas evidências de legitimidade, mas também a falta de documentação essencial."
+    "justificativa": "Embora existam sinais protetivos, a ausência de contrato e extrato gera incertezas sobre a legitimidade da operação. O score reflete um cenário com sinais conflitantes."
   },
   "ifp": {
     "processo_id": "0654321-09.2024.8.04.0001",
@@ -115,17 +118,17 @@
   },
   "decisao": {
     "decisao": "ACORDO",
-    "probabilidade_perda": 0.39787555166059774,
-    "valor_condenacao_estimado": 21751.541015625,
+    "probabilidade_perda": 0.9295467498796761,
+    "valor_condenacao_estimado": 20601.0625,
     "valor_condenacao_faixa": [
-      19472.708984375,
-      23942.775390625
+      19933.146484375,
+      24121.595703125
     ],
-    "custo_esperado_defesa": 10063.126421059915,
-    "valor_acordo_sugerido": 5031.563210529957,
+    "custo_esperado_defesa": 20558.370730943076,
+    "valor_acordo_sugerido": 10279.185365471538,
     "override_aplicado": true,
     "razao_override": "IFP_FRACO",
     "policy": "Balanceada",
-    "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 39.8%. Condenacao estimada (se perder): R$ 21,751.54 (faixa IC 80%: R$ 19,472.71 a R$ 23,942.78). Custo esperado da defesa: R$ 10,063.13. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 5,031.56, alpha = 0.50). Politica aplicada: Balanceada."
+    "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Balanceada."
   }
 }

@@ -4,11 +4,15 @@
   "sub_assunto": "Golpe",
   "valor_causa": 25000.0,
   "features_documentais": {
+    "tem_contrato": false,
+    "tem_extrato": false,
+    "tem_comprovante": true,
+    "tem_dossie": false,
+    "tem_demonstrativo": true,
+    "tem_laudo": true,
     "ifp": 0.42,
-    "tem_contrato_assinado": false,
-    "tem_comprovante_ted": true,
-    "laudo_favoravel": true,
     "score_fraude": 0.3,
+    "laudo_favoravel": true,
     "indicio_de_fraude": false
   }
 }
