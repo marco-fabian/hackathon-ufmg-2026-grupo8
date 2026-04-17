@@ -1,0 +1,146 @@
+{
+  "header": {
+    "processo_id": "Caso_02",
+    "uf": "AM",
+    "sub_assunto": "Golpe",
+    "valor_causa": 25000.0
+  },
+  "ifp": {
+    "score": 42,
+    "score_normalizado": 0.42,
+    "tier": "FRACO",
+    "componentes": {
+      "presenca": 25,
+      "qualidade": 17
+    },
+    "sinais_fortes": [
+      "demonstrativo_8_parcelas_pagas",
+      "laudo_evidencia_digital(biometria|device_fingerprint|geolocalizacao)"
+    ],
+    "sinais_ausentes": [
+      "contrato",
+      "extrato",
+      "dossie"
+    ],
+    "reasoning": "IFP v2 = 42 (FRACO). Presença 25/60 (falta: contrato, extrato, dossie), qualidade 17/40."
+  },
+  "features_documentais": {
+    "tem_contrato": false,
+    "tem_extrato": false,
+    "tem_comprovante": true,
+    "tem_dossie": false,
+    "tem_demonstrativo": true,
+    "tem_laudo": true,
+    "ifp": 0.42,
+    "score_fraude": 0.3,
+    "laudo_favoravel": true,
+    "indicio_de_fraude": false
+  },
+  "analise_fraude": {
+    "score_fraude": 0.3,
+    "indicadores_fraude": [
+      "Falta de contrato",
+      "Falta de extrato",
+      "Canal digital sem dossiê"
+    ],
+    "sinais_protetivos": [
+      "8 parcelas pagas",
+      "Laudo com biometria",
+      "Laudo com device fingerprint",
+      "Laudo com geolocalização"
+    ],
+    "justificativa": "Embora existam sinais protetivos, a ausência de contrato e extrato, juntamente com a falta de um dossiê, indicam um cenário de risco. O score reflete a presença de alguns pagamentos, mas a falta de documentação essencial eleva a suspeita."
+  },
+  "politicas": {
+    "Conservadora": {
+      "policy": "Conservadora",
+      "alpha": 0.5,
+      "limiar": 7000.0,
+      "decisao": "ACORDO",
+      "override_aplicado": true,
+      "razao_override": "IFP_FRACO",
+      "probabilidade_perda": 0.9295,
+      "valor_condenacao_estimado": 20601.06,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 19933.15,
+        "q90": 24121.6
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 20558.37,
+      "valor_acordo_sugerido": 10279.19,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Conservadora."
+    },
+    "Moderada": {
+      "policy": "Moderada",
+      "alpha": 0.5,
+      "limiar": 4000.0,
+      "decisao": "ACORDO",
+      "override_aplicado": true,
+      "razao_override": "IFP_FRACO",
+      "probabilidade_perda": 0.9295,
+      "valor_condenacao_estimado": 20601.06,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 19933.15,
+        "q90": 24121.6
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 20558.37,
+      "valor_acordo_sugerido": 10279.19,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Moderada."
+    },
+    "Balanceada": {
+      "policy": "Balanceada",
+      "alpha": 0.5,
+      "limiar": 3000.0,
+      "decisao": "ACORDO",
+      "override_aplicado": true,
+      "razao_override": "IFP_FRACO",
+      "probabilidade_perda": 0.9295,
+      "valor_condenacao_estimado": 20601.06,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 19933.15,
+        "q90": 24121.6
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 20558.37,
+      "valor_acordo_sugerido": 10279.19,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Balanceada."
+    },
+    "Agressiva": {
+      "policy": "Agressiva",
+      "alpha": 0.5,
+      "limiar": 2000.0,
+      "decisao": "ACORDO",
+      "override_aplicado": true,
+      "razao_override": "IFP_FRACO",
+      "probabilidade_perda": 0.9295,
+      "valor_condenacao_estimado": 20601.06,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 19933.15,
+        "q90": 24121.6
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 20558.37,
+      "valor_acordo_sugerido": 10279.19,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Agressiva."
+    },
+    "Maxima": {
+      "policy": "Maxima",
+      "alpha": 0.5,
+      "limiar": 500.0,
+      "decisao": "ACORDO",
+      "override_aplicado": true,
+      "razao_override": "IFP_FRACO",
+      "probabilidade_perda": 0.9295,
+      "valor_condenacao_estimado": 20601.06,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 19933.15,
+        "q90": 24121.6
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 20558.37,
+      "valor_acordo_sugerido": 10279.19,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Maxima."
+    }
+  }
+}
