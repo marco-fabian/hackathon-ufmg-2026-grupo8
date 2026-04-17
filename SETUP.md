@@ -1,93 +1,128 @@
-# Setup e Execução — Grupo 8
+# Setup e Execucao — Motor de Decisao Juridica (Grupo 8)
 
-## Pré-requisitos
+## Pre-requisitos
 
-- Python 3.11+
-- Chave da OpenAI (fornecida pela organização do hackathon)
-- Arquivos de dados fornecidos pela organização em `data/`:
-  - `Hackaton_Enter_Base_Candidatos.xlsx` (obrigatório)
-  - `Caso_01/` e `Caso_02/` com PDFs (opcional, para demo do IFP v2)
+- Anaconda/Miniconda instalado
+- Env conda `ENTER` com Python 3.14 (provisionado)
+- ~2 GB livres (XGBoost, SHAP, matplotlib)
+- `Hackaton_Enter_Base_Candidatos.xlsx` em `data/` (60k processos; nao versionado)
 
-## Instalação
+## Instalacao
 
 ```bash
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS/Linux
-source .venv/bin/activate
-
-pip install -r requirements.txt
+conda activate ENTER
+pip install -r src/backend/requirements-backend.txt
 ```
 
-## Variáveis de Ambiente
+Libs: pandas 3.0, numpy 2.4, scikit-learn 1.8, xgboost 3.2, shap 0.51, matplotlib 3.10, openai 2.32, joblib, openpyxl, python-dotenv.
+
+## Variaveis de ambiente
 
 ```bash
 cp .env.example .env
-# Edite .env e preencha OPENAI_API_KEY
+# preencha OPENAI_API_KEY (opcional — sem ela, explicacoes usam fallback deterministico)
 ```
 
-## Execução
+## Execucao
 
-### 1. Explorar a base (reproduz os achados do CLAUDE.md)
+### 1. Pipeline completo (treino + backtesting + demo, ~2 min)
 
 ```bash
-python src/explore.py
+conda run -n ENTER python -m src.backend.modelo.motor_decisao
 ```
 
-Imprime distribuição de outcome, lift por documento, escada qtd-docs × êxito e top combinações. Sem side-effects.
+Executa:
+1. Treina Modelo A (classificacao P(L)) com XGBoost + calibracao Platt.
+2. Treina Modelo B (regressao Vc em log1p) e 3 quantis (10/50/90).
+3. Roda backtesting em 12k processos (120 combinacoes α x Limiar).
+4. Gera catalogo de 5 politicas em `parametros_otimizados.json`.
+5. Imprime demo de 5 casos.
 
-### 2. Calcular o IFP v1 (presença-based, 60k processos)
+Artefatos em `src/backend/modelo/modelos_treinados/`:
+- `modelo_*.joblib`, `encoder_features.joblib`, `target_encoding_stats.joblib`
+- `parametros_otimizados.json`, `backtesting.csv`, `report_politicas.md`
+- `metricas_*.json`, `reliability_diagram.png`, `regressao_real_vs_previsto.png`, `backtesting_economia_vs_acordos.png`
+
+### 2. Apenas re-rodar o backtesting
 
 ```bash
-python src/ifp_v1_heuristico.py
+conda run -n ENTER python -m src.backend.modelo.motor_decisao --so-backtest
 ```
 
-- Valida os dois casos-exemplo (sanity check).
-- Roda em batch sobre os 60k processos.
-- Salva `data/ifp_v1.csv` com colunas `processo, ifp_score, ifp_tier, tem_*, sinais_ausentes`.
-
-### 3. Montar o dataset de treino para o motor de decisão
+### 3. Treinar apenas um modelo isoladamente
 
 ```bash
-python src/dataset_treino.py
+conda run -n ENTER python -m src.backend.modelo.modelo_probabilidade_perda
+conda run -n ENTER python -m src.backend.modelo.modelo_estimativa_condenacao
 ```
 
-Junta outcome + presença + IFP + split train/val (80/20 estratificado). Salva em `data/training.csv`.
-
-### 4. Rodar o IFP v2 nos casos-exemplo (LLM)
+### 4. SHAP + explicacao LLM
 
 ```bash
-python src/demo_v2.py
+conda run -n ENTER python -m src.backend.modelo.explicador
 ```
 
-Lê os PDFs de `data/Caso_01/` e `data/Caso_02/`, classifica por nome, extrai features via OpenAI (`gpt-4o-mini`, Structured Outputs) e compõe o IFP v2 (presença 0–60 + qualidade 0–40). Salva JSON em `docs/examples/`. Requer `OPENAI_API_KEY` no `.env`.
+## Uso programatico
 
-## Estrutura
+```python
+from src.backend.modelo.motor_decisao import MotorDecisao
+
+motor = MotorDecisao.carregar(policy="Balanceada")
+
+r = motor.decidir(uf="SP", sub_assunto="Golpe", valor_causa=25000.0)
+print(r.decisao.value)                  # "ACORDO" ou "DEFESA"
+print(r.probabilidade_perda)            # [0, 1]
+print(r.valor_condenacao_estimado)      # R$
+print(r.valor_condenacao_faixa)         # (q10, q90), IC 80%
+print(r.custo_esperado_defesa)          # R$
+print(r.valor_acordo_sugerido)          # R$ se ACORDO, None se DEFESA
+print(r.explicacao)                     # texto para o advogado
+```
+
+### Com features documentais (do extrator de PDFs do teammate)
+
+```python
+r = motor.decidir(
+    uf="SP", sub_assunto="Golpe", valor_causa=15000.0,
+    features_documentais={
+        "tem_contrato_assinado": True,
+        "tem_comprovante_ted": True,
+        "laudo_favoravel": True,
+        "score_fraude": 0.15,
+    },
+)
+# -> DEFESA (override: DOCUMENTACAO_COMPLETA_SEM_FRAUDE)
+```
+
+### Trocar politica em runtime
+
+```python
+motor_agressivo = MotorDecisao.carregar(policy="Agressiva")
+```
+
+Politicas: `Conservadora`, `Moderada`, `Balanceada` (default), `Agressiva`, `Maxima`. Definidas pelo backtesting.
+
+## Estrutura do Projeto
 
 ```
 .
-├── CLAUDE.md                         # contexto para agentes
-├── README.md                         # descrição do desafio
-├── SETUP.md                          # este arquivo
-├── requirements.txt
-├── data/                             # NÃO VERSIONADO
+├── CLAUDE.md                             # documentacao tecnica completa
+├── README.md                             # enunciado do desafio
+├── SETUP.md                              # este arquivo
+├── .env.example
+├── data/                                 # NAO VERSIONADO
 │   ├── Hackaton_Enter_Base_Candidatos.xlsx
-│   ├── Caso_01/ ... Caso_02/
-│   ├── ifp_v1.csv                    # gerado por ifp_v1_heuristico.py
-│   └── training.csv                  # gerado por dataset_treino.py
-├── docs/
-│   ├── decisions/0001-ifp-v1-design.md
-│   └── schemas/ifp.json
+│   └── Caso_01/ Caso_02/                 # processos-exemplo (PDFs)
+├── docs/                                 # apresentacao, slides
 └── src/
-    ├── explore.py
-    ├── ifp_v1_heuristico.py          # compute_ifp_v1() + batch
-    └── dataset_treino.py
+    └── backend/
+        ├── requirements-backend.txt
+        └── modelo/                       # motor de decisao
+            ├── config.py                  # constantes tecnicas
+            ├── features.py                # feature engineering
+            ├── modelo_probabilidade_perda.py
+            ├── modelo_estimativa_condenacao.py
+            ├── motor_decisao.py           # pipeline + backtesting + overrides
+            ├── explicador.py              # SHAP + LLM
+            └── modelos_treinados/         # artefatos gerados pelo treino
 ```
-
-## Contrato para Outros Módulos
-
-O IFP expõe o schema em [`docs/schemas/ifp.json`](docs/schemas/ifp.json). Motor de decisão e UI devem consumi-lo.
-
-- `compute_ifp_v1(subsidios: dict[str, bool]) -> IFPResult` em [`src/ifp_v1_heuristico.py`](src/ifp_v1_heuristico.py).
-- Dataset de treino pronto em `data/training.csv` (via `dataset_treino.py`).

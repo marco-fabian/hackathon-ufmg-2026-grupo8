@@ -1,99 +1,203 @@
-# CLAUDE.md
+# CLAUDE.md — Motor de Decisao Juridica (Grupo 8, Hackathon UFMG 2026)
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Contexto do Projeto
 
-Hackathon UFMG 2026 — Enter AI Challenge (17–18/04/2026). Grupo 8. Prazo de submissão: 18/04 04:00; apresentação: 18/04 07:00.
+Hackathon UFMG 2026 - Enter AI Challenge (17-18/04/2026). Grupo 8. Submissao 18/04 04:00; apresentacao 07:00.
 
-**Problema:** Banco UFMG recebe ~5 mil ações/mês de pessoas alegando "não reconhecimento de contratação de empréstimo". O banco precisa decidir, caso a caso, entre **defesa** ou **acordo**. A solução deve conter:
+**Problema:** Banco UFMG recebe ~5k acoes/mes de pessoas alegando nao reconhecimento de contratacao de emprestimo. Para cada processo, decidir **DEFESA** ou **ACORDO** e, se acordo, o valor proposto. Leitura completa em [README.md](README.md).
 
-1. Regra de decisão (acordo vs defesa) a partir dos autos + subsídios
-2. Sugestão de valor quando for acordo
-3. Acesso prático do advogado à recomendação
-4. Monitoramento de aderência pelos advogados
-5. Monitoramento de efetividade da política
+## Arquitetura — Motor de Decisao ML
 
-Leitura completa do desafio em [README.md](README.md).
+O motor vive em `src/backend/modelo/`. Pipeline de **2 modelos ML + 1 motor financeiro**:
 
-## Arquitetura Esperada (ainda em construção)
+```
+Processo → [Modelo A: P(L)] → [Modelo B: Vc | perda] → [Motor Financeiro]
+                                                                ↓
+                                                E[C_defesa] = P(L)·Vc + Cp
+                                                                ↓
+                                                   E[C_defesa] > Limiar?
+                                                   /                    \
+                                                 SIM                    NAO
+                                                  ↓                      ↓
+                                          ACORDO (α·E[C_defesa])     DEFESA
+                                                  ↓
+                                    [Overrides documentais opcionais]
+```
 
-A solução se organiza em módulos que colaboram via contratos JSON. Cada integrante toca uma fatia:
+Por que separar em dois modelos + formula:
+1. **Interpretabilidade:** "probabilidade de perder x condenacao esperada" e direto; um score opaco de "acordar" nao e.
+2. **Politica ajustavel sem retreinar:** α e Limiar sao parametros da formula.
+3. **Classe "Acordo" rara (0.47%):** nao da para classificar diretamente; usamos `Resultado macro` (30.4% perdas).
+4. **α e Limiar derivados dos dados** via backtesting sobre a base de 60k.
 
-- **Normalização + IFP (Índice de Força Probatória)** — responsabilidade desta branch `backend`. Duas versões:
-  - **IFP v1** (`src/ifp_v1_heuristico.py`): presença-based, roda sobre o xlsx de 60k; usado no dataset de treino e na produção histórica. Sem LLM.
-  - **IFP v2** (`src/ifp_v2.py` + `src/extractors/`): extrai features dos PDFs via OpenAI Structured Outputs (`gpt-4o-mini`); demo-only porque só há PDFs nos 2 casos-exemplo. Adiciona componente de qualidade (0–40) ao score de presença (0–60).
-- **Motor de decisão** (`src/motor_decisao.py`) — consome o IFP v2 + `AutosFeatures` (petição inicial extraída por `src/extractors/autos.py`) e aplica regras por tier: FORTE → DEFENDER, FRACO → ACORDO, MÉDIO → regra 2×2 (Contrato × Extrato). Red flags críticos na petição (BO registrado, autor afirma não ter conta no banco, crédito em conta de terceiro) podem rebaixar decisão em MÉDIO ou diminuir confiança em FORTE. Proposta de acordo = `valor_causa × 0,70 × 0,43` (calibrado empiricamente: razão média condenação/causa na base = 0,704). Pipeline end-to-end em `src/demo_motor.py`. Alternativa futura: XGBoost treinado em `data/training.csv` (já preparado, não implementado).
-- **Interface do advogado (front-end)** — consome `docs/schemas/ifp.json` + exemplos em `docs/examples/ifp_v2_*.json` e `docs/examples/decisao_caso_*.json`; renderiza o "termômetro" e a recomendação.
+### Modelos
 
-O IFP é o ponto de acoplamento entre as três camadas. Schema estável em [docs/schemas/ifp.json](docs/schemas/ifp.json).
+| Modelo | Tipo | Target | Algoritmo |
+|---|---|---|---|
+| A | Classificacao | `Resultado macro == "Nao Exito"` | XGBClassifier + CalibratedClassifierCV (Platt) |
+| B | Regressao | `Valor da condenacao` (log1p) nos **18k perdidos** | XGBRegressor |
+| B' | Quantile regression | Vc nos quantis 10/50/90 | 3x XGBRegressor (`reg:quantileerror`) |
+
+Metricas observadas (teste = 20% = 12000 processos, `random_state=42`):
+- Modelo A: AUC-ROC 0.628, Brier 0.203, ECE 0.013, CV AUC 0.624±0.005. **Calibracao quase perfeita** (taxa prevista 30.5% ≈ real 30.4%).
+- Modelo B: MAE R$ 2.422, R² 0.573, MAPE 27.0%.
+- Quantis: cobertura empirica IC 80% = 74.3% (alvo 80%).
+- **Features usadas:** UF, Sub-assunto, Valor da causa + derivadas (log_valor_causa, valor_causa_bin, uf_taxa_perda_hist via target encoding smoothed, uf_ticket_medio_cond). `Assunto` descartado (variancia zero).
+- **Teto preditivo baixo** (AUC ~0.63) e limite das features tabulares — melhora quando features documentais do extrator entrarem em producao via overrides.
+
+### Features documentais (overrides deterministicos)
+
+Features documentais (tem_contrato_assinado, tem_comprovante_ted, laudo_favoravel, score_fraude, indicio_de_fraude) **nao estao na base de 60k** — nao ha como calibrar multiplicadores com dados. Solucao: overrides binarios de borda, sem calibracao numerica arbitraria.
+
+| Condicao | Decisao forcada |
+|---|---|
+| contrato + TED + laudo_favoravel + score_fraude < 0.3 | DEFESA |
+| score_fraude > 0.7 + sem contrato | ACORDO |
+| qualquer outra | usa modelo ML |
+
+Thresholds em `config.py` (`OVERRIDE_SCORE_FRAUDE_BAIXO=0.30`, `OVERRIDE_SCORE_FRAUDE_ALTO=0.70`).
+
+### Catalogo de politicas (backtesting)
+
+A analise empirica da base mostrou que a economia e **linear em % de acordos**: com α<1.0, matematicamente 100% acordo sempre vence. Nao ha otimo interior. Portanto, nao escolhemos uma politica unica — geramos um **catalogo de 5** e decidimos qual apresentar.
+
+Resultado do backtesting (teste com 12000 processos, Cp estimado R$ 1.408,72, baseline "defender tudo" = R$ 55.685.210):
+
+| Politica | α | Limiar | % Acordos | Economia | % vs baseline |
+|---|---|---|---|---|---|
+| Conservadora | 0.50 | R$ 6.000 | 15.3% | R$ 7.549.985 | 13.6% |
+| Moderada | 0.50 | R$ 5.000 | 31.4% | R$ 13.203.100 | 23.7% |
+| **Balanceada (default)** | 0.50 | R$ 5.000 | 31.4% | R$ 13.203.100 | 23.7% |
+| Agressiva | 0.50 | R$ 4.000 | 55.5% | R$ 20.293.659 | 36.4% |
+| Maxima | 0.50 | R$ 500 | 100% | R$ 28.750.105 | 51.6% |
+
+`Balanceada` e o default (proxima da taxa real de perda de 30.4%). A API aceita qualquer uma via `MotorDecisao.carregar(policy="Moderada")`. Tabela completa em `backtesting.csv`; report formatado em `report_politicas.md`.
+
+**Limitacao conhecida:** o grid de α [0.50, 0.95] sempre converge para α=0.50 porque menor α = menor valor pago = maior economia na simulacao. Isso **nao modela recusa do autor** (um acordo pequeno pode ser rejeitado). A base nao tem dados de aceitacao/recusa — declarar na apresentacao.
+
+### Diferenciais
+
+1. **Motor transparente** — decisao e formula de 3 linhas com parametros auditaveis.
+2. **Probabilidades calibradas** — P(L) e probabilidade real (ECE 0.013), nao score ordinal. Reliability diagram em `reliability_diagram.png`.
+3. **Catalogo de 5 politicas** derivadas do backtesting — trade-off explicito em vez de numero unico.
+4. **Overrides deterministicos** — features documentais sem calibracao arbitraria.
+5. **Intervalos de confianca no Vc** via quantile regression — suporta negociacao ("condenacao esperada R$ 8k, faixa R$ 5k-R$ 14k").
+6. **SHAP values por decisao** — `motor.explicar_shap(uf, sub, valor)` retorna top-3 contribuicoes em P(L) e Vc.
+7. **Explicacoes via LLM (OpenAI)** — `explicador.gerar_explicacao(resultado)` usa GPT se `OPENAI_API_KEY` presente, fallback deterministico silencioso.
+
+### Estrutura de arquivos
+
+```
+src/backend/
+├── requirements-backend.txt
+└── modelo/
+    ├── __init__.py
+    ├── config.py                           # constantes tecnicas (paths, RANDOM_STATE, hiperparam, grids)
+    ├── features.py                         # carregar_base, build_features (OrdinalEncoder + target encoding)
+    ├── modelo_probabilidade_perda.py       # Modelo A (classificador calibrado)
+    ├── modelo_estimativa_condenacao.py     # Modelo B (log) + 3 quantis
+    ├── motor_decisao.py                    # MotorDecisao + backtesting + overrides + pipeline_completo
+    ├── explicador.py                       # SHAP + explicacao LLM (OpenAI) / fallback
+    └── modelos_treinados/
+        ├── modelo_probabilidade_perda.joblib
+        ├── modelo_estimativa_condenacao.joblib
+        ├── modelo_quantis_condenacao.joblib
+        ├── encoder_features.joblib
+        ├── target_encoding_stats.joblib
+        ├── parametros_otimizados.json       # Cp, politicas, policy_default
+        ├── backtesting.csv                  # grid completo (α x Limiar x metricas)
+        ├── report_politicas.md              # tabela formatada das 5 politicas
+        ├── metricas_classificacao.json
+        ├── metricas_regressao.json
+        ├── metricas_quantis.json
+        ├── reliability_diagram.png
+        ├── regressao_real_vs_previsto.png
+        └── backtesting_economia_vs_acordos.png
+```
+
+**Nao vai em `config.py`:** α, Limiar, Cp, policy default, multiplicadores documentais. Todos derivados dos dados ou inexistentes (overrides sao binarios).
 
 ## Dados
 
-Todos os dados reais ficam em `data/` e **não são versionados** (ver `.gitignore`).
-
-- `data/Hackaton_Enter_Base_Candidatos.xlsx` — 2 abas:
-  - **Resultados dos processos** (60.000 linhas): nº do processo, UF, Assunto, Sub-assunto (Golpe/Genérico), Resultado macro (Êxito/Não Êxito), Resultado micro (Improcedência/Extinção/Parcial procedência/Procedência/Acordo), Valor da causa, Valor da condenação.
-  - **Subsídios disponibilizados** (60.000 linhas, header na linha 1): nº do processo + 6 colunas binárias indicando presença de cada subsídio.
-- `data/Caso_01/` e `data/Caso_02/` — 2 processos-exemplo com PDFs reais (Autos + Subsídios). **São sintéticos** ("Documento fictício - Hackathon UFMG 2026" no rodapé). Caso_01 tem os 6 subsídios; Caso_02 tem apenas 3 (falta Contrato, Extrato, Dossiê) — é o "golden test" de IFP baixo.
-
-### Achados empíricos da base (não re-descobrir)
-
-Baseline da base histórica, já computado:
-
-- 69,6% Êxito / 30,4% Não Êxito; apenas 280 acordos (0,47%).
-- Sub-assunto **Golpe** (69% dos casos) tem 64% de êxito; **Genérico** tem 83%.
-- **Qtd de subsídios** é quase determinística do resultado: 0 docs → 0% êxito; 3 docs → 34%; 4 → 64%; 5 → 87%; 6 → 96%.
-- **Lift empírico por documento** (taxa de êxito com − sem):
-  - Contrato +63 p.p. · Extrato +63 p.p. · Comprovante BACEN +27 p.p. · Demonstrativo +12 p.p. · Dossiê ~0 · Laudo ~0
-  - Dossiê e Laudo têm lift zero na base sintética mesmo sendo juridicamente relevantes — tradeoff a sinalizar na apresentação.
-- A base parece **sintética**: UF distribui exatamente em 2308 por estado. Calibrar em cima disso, mas declarar a limitação.
-
-### Estrutura interna dos PDFs de subsídio
-
-Cada tipo de documento segue padrão altamente estruturado (pares chave-valor) → Structured Outputs do OpenAI encaixa bem. Features extraíveis já mapeadas (ver plano em memória da conversa): presença de assinatura, valor/prazo/taxa, canal de contratação, se o extrato mostra o crédito e se o autor movimentou o dinheiro, qtd de parcelas pagas no demonstrativo, validação do dossiê Veritas, evidências digitais no laudo (device fingerprint, geolocalização, gravação).
+- `data/Hackaton_Enter_Base_Candidatos.xlsx` — 60k processos (UF, Sub-assunto, Valor da causa, Resultado macro/micro, Valor da condenacao). 0 nulos. Base parece sintetica (exatos 2308 processos por UF).
+- `data/Caso_01/` e `data/Caso_02/` — 2 processos-exemplo com PDFs (Autos + Subsidios). Caso_01 tem os 6 subsidios; Caso_02 tem apenas 3.
 
 ## Comandos
 
-### Setup do ambiente Python
-
+### Setup
 ```bash
-python -m pip install pandas openpyxl pdfplumber openai python-dotenv
+conda activate ENTER
+pip install -r src/backend/requirements-backend.txt
 ```
 
-Dependências adicionais (XGBoost, scikit-learn, etc.) serão adicionadas conforme o pipeline evolui.
-
-### Variáveis de ambiente
-
+### Treinar tudo (pipeline completo)
 ```bash
-cp .env.example .env
-# preencher OPENAI_API_KEY (fornecida pela organização)
+conda run -n ENTER python -m src.backend.modelo.motor_decisao
+```
+Executa: Fase 2 (features) -> Fase 3 (Modelo A) -> Fase 4 (Modelo B + quantis) -> Fase 5 (backtesting + catalogo) -> demo de 5 casos.
+
+### Rodar apenas o backtesting (modelos ja treinados)
+```bash
+conda run -n ENTER python -m src.backend.modelo.motor_decisao --so-backtest
 ```
 
-### Explorar a base
+### Testar o motor num processo
+```python
+from src.backend.modelo.motor_decisao import MotorDecisao
 
-```bash
-# Abrir o xlsx com pandas (header=1 na aba de subsídios)
-python -c "import pandas as pd; print(pd.read_excel('data/Hackaton_Enter_Base_Candidatos.xlsx', sheet_name='Subsídios disponibilizados', header=1).head())"
+motor = MotorDecisao.carregar(policy="Balanceada")
+r = motor.decidir(uf="SP", sub_assunto="Golpe", valor_causa=15000.0)
+print(r.decisao.value, r.valor_acordo_sugerido, r.explicacao)
 ```
 
-Scripts de exploração e cálculo do IFP vão viver em `src/` conforme o projeto avança.
+### Testar com features documentais (do teammate)
+```python
+r = motor.decidir(
+    uf="SP", sub_assunto="Golpe", valor_causa=15000.0,
+    features_documentais={
+        "tem_contrato_assinado": True,
+        "tem_comprovante_ted": True,
+        "laudo_favoravel": True,
+        "score_fraude": 0.15,
+    },
+)
+# -> DEFESA (override: DOCUMENTACAO_COMPLETA_SEM_FRAUDE)
+```
 
-## Convenções de Trabalho
+### SHAP + explicacao LLM
+```bash
+conda run -n ENTER python -m src.backend.modelo.explicador
+```
 
-- **Documentação incremental:** cada etapa construída é registrada em `docs/` (decisões, achados, diffs significativos). Não esperar o final para documentar.
-- **Commits por etapa:** cada passo do plano vira um commit com mensagem descritiva. Co-author `Claude Opus 4.7 (1M context) <noreply@anthropic.com>`.
-- **Schemas primeiro, código depois:** antes de implementar qualquer módulo que outro integrante consome (IFP, motor, UI), escrever o contrato JSON e alinhar.
-- **Baseline antes de LLM:** o IFP v1 deve rodar só com presença/ausência (xlsx) — sem custo de LLM — e ser suficiente para destravar o resto do time. IFP v2 adiciona a camada de qualidade via extração de PDFs.
-- **Custo de LLM é restrição real:** 60k processos × 6 documentos é caro; pensar em amostragem estratificada, cache local e batching antes de rodar em massa.
+## Integracao com o teammate (extrator de PDFs)
 
-## Entregáveis da Submissão
+O teammate entrega um dict compativel com o contrato de `aplicar_overrides_documentais`:
 
-Conforme [README.md](README.md#6-formato-de-entrega):
+```python
+{
+    "tem_contrato_assinado": bool,
+    "tem_comprovante_ted": bool,
+    "laudo_favoravel": bool,
+    "score_fraude": float,   # [0,1]
+    "indicio_de_fraude": bool,
+}
+```
 
-- Repositório público no GitHub no formato `hackathon-ufmg-2026-grupo8`
-- `src/` com código-fonte
-- `SETUP.md` com instruções de execução reproduzíveis
-- `docs/presentation.*` — slides (máx 15 min)
-- Vídeo demo de até 2 min mostrando o fluxo do advogado
-- Submissão no site `hackathon.getenter.ai` até 18/04 04:00
+Basta passar como `features_documentais` em `motor.decidir(...)`. Nenhum retreino necessario.
+
+## Convencoes
+
+- **Python 3.14** no env conda `ENTER` (todas as libs instaladas).
+- **`config.py` e constantes tecnicas** — paths, `RANDOM_STATE=42`, hiperparam, grids. Nada de negocio.
+- **Sem emojis nos prints** — console Windows e cp1252. UTF-8 livre em arquivos e interfaces web.
+- **Reprodutibilidade** — todos os pontos aleatorios usam `cfg.RANDOM_STATE`.
+- **Artefatos nunca commitados em `data/`**. Modelos em `src/backend/modelo/modelos_treinados/` podem ou nao ser commitados (ver .gitignore).
+
+## Entregaveis
+
+Conforme [README.md](README.md):
+- Repo publico `hackathon-ufmg-2026-grupo8` com `src/`, `SETUP.md`, `docs/presentation.*`
+- Video demo ate 2 min
+- Submissao em hackathon.getenter.ai ate 18/04 04:00
