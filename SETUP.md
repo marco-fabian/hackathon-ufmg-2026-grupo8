@@ -55,6 +55,14 @@ python src/dataset_treino.py
 
 Junta outcome + presença + IFP + split train/val (80/20 estratificado). Salva em `data/training.csv`.
 
+### 4. Rodar o IFP v2 nos casos-exemplo (LLM)
+
+```bash
+python src/demo_v2.py
+```
+
+Lê os PDFs de `data/Caso_01/` e `data/Caso_02/`, classifica por nome, extrai features via OpenAI (`gpt-4o-mini`, Structured Outputs) e compõe o IFP v2 (presença 0–60 + qualidade 0–40). Salva JSON em `docs/examples/`. Requer `OPENAI_API_KEY` no `.env`.
+
 ## Estrutura
 
 ```
