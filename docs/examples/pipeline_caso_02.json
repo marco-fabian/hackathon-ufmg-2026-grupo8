@@ -1,0 +1,131 @@
+{
+  "processo_id": "0654321-09.2024.8.04.0001",
+  "payload": {
+    "processo_id": "0654321-09.2024.8.04.0001",
+    "uf": "AM",
+    "sub_assunto": "Golpe",
+    "valor_causa": 25000.0,
+    "features_documentais": {
+      "ifp": 0.42,
+      "tem_contrato_assinado": false,
+      "tem_comprovante_ted": true,
+      "laudo_favoravel": true,
+      "score_fraude": 0.3,
+      "indicio_de_fraude": false
+    }
+  },
+  "analise_fraude": {
+    "score_fraude": 0.3,
+    "indicadores_fraude": [
+      "Falta de contrato",
+      "Falta de extrato",
+      "Canal digital sem dossiê"
+    ],
+    "sinais_protetivos": [
+      "8 parcelas pagas",
+      "Laudo com biometria",
+      "Laudo com device fingerprint",
+      "Laudo com geolocalização"
+    ],
+    "justificativa": "Embora existam sinais protetivos, a ausência de contrato e extrato, juntamente com a falta de um dossiê, indicam um cenário de risco. O score reflete a presença de algumas evidências de legitimidade, mas também a falta de documentação essencial."
+  },
+  "ifp": {
+    "processo_id": "0654321-09.2024.8.04.0001",
+    "ifp": {
+      "score": 42,
+      "tier": "FRACO",
+      "versao": "v2",
+      "componentes": {
+        "presenca": 25,
+        "qualidade": 17
+      }
+    },
+    "subsidios": {
+      "contrato": {
+        "presente": false,
+        "peso_aplicado": 0,
+        "features": null
+      },
+      "extrato": {
+        "presente": false,
+        "peso_aplicado": 0,
+        "features": null
+      },
+      "comprovante": {
+        "presente": true,
+        "peso_aplicado": 9,
+        "features": {
+          "numero_contrato": "603827451",
+          "cpf_tomador": "789.123.456-78",
+          "valor_operacao": 8500.0,
+          "qtd_parcelas": 84,
+          "taxa_juros_am": 1.76,
+          "cet_aa": 27.19,
+          "data_contratacao": "2023-07-18",
+          "canal_contratacao": "digital_app",
+          "forma_liberacao": "credito_conta_corrente",
+          "instituicao_depositaria": "Caixa Econômica Federal"
+        }
+      },
+      "demonstrativo": {
+        "presente": true,
+        "peso_aplicado": 7,
+        "features": {
+          "numero_contrato": "603827451",
+          "valor_financiado": 8500.0,
+          "qtd_parcelas_total": 84,
+          "qtd_parcelas_pagas": 8,
+          "qtd_parcelas_em_aberto": 76,
+          "data_primeira_parcela": "2023-08-18",
+          "data_primeira_inadimplencia": "2024-04-18"
+        }
+      },
+      "dossie": {
+        "presente": false,
+        "peso_aplicado": 0,
+        "features": null
+      },
+      "laudo": {
+        "presente": true,
+        "peso_aplicado": 9,
+        "features": {
+          "numero_contrato": "603827451",
+          "canal_contratacao": "digital_app",
+          "situacao_atual": "ATIVO - EM DISCUSSÃO JUDICIAL",
+          "tem_gravacao_voz": false,
+          "tem_biometria_facial": true,
+          "tem_device_fingerprint": true,
+          "tem_geolocalizacao": true,
+          "tem_ip_registrado": true,
+          "tem_assinatura_manuscrita": false,
+          "correspondente_bancario": null
+        }
+      }
+    },
+    "sinais_fortes": [
+      "demonstrativo_8_parcelas_pagas",
+      "laudo_evidencia_digital(biometria|device_fingerprint|geolocalizacao)"
+    ],
+    "sinais_ausentes": [
+      "contrato",
+      "extrato",
+      "dossie"
+    ],
+    "reasoning_curto": "IFP v2 = 42 (FRACO). Presença 25/60 (falta: contrato, extrato, dossie), qualidade 17/40."
+  },
+  "decisao": {
+    "decisao": "ACORDO",
+    "probabilidade_perda": 0.39787555166059774,
+    "valor_condenacao_estimado": 21751.541015625,
+    "valor_condenacao_faixa": [
+      19472.708984375,
+      23942.775390625
+    ],
+    "custo_esperado_defesa": 10063.126421059915,
+    "valor_acordo_sugerido": 5031.563210529957,
+    "override_aplicado": true,
+    "razao_override": "IFP_FRACO",
+    "policy": "Balanceada",
+    "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 39.8%. Condenacao estimada (se perder): R$ 21,751.54 (faixa IC 80%: R$ 19,472.71 a R$ 23,942.78). Custo esperado da defesa: R$ 10,063.13. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 5,031.56, alpha = 0.50). Politica aplicada: Balanceada."
+  }
+}

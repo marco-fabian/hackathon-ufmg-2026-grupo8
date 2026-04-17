@@ -1,0 +1,14 @@
+{
+  "processo_id": "0654321-09.2024.8.04.0001",
+  "uf": "AM",
+  "sub_assunto": "Golpe",
+  "valor_causa": 25000.0,
+  "features_documentais": {
+    "ifp": 0.42,
+    "tem_contrato_assinado": false,
+    "tem_comprovante_ted": true,
+    "laudo_favoravel": true,
+    "score_fraude": 0.3,
+    "indicio_de_fraude": false
+  }
+}
