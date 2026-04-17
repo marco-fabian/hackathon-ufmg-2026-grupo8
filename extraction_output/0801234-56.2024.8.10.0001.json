@@ -1,0 +1,14 @@
+{
+  "processo_id": "0801234-56.2024.8.10.0001",
+  "uf": "MA",
+  "sub_assunto": "Genérico",
+  "valor_causa": 20000.0,
+  "features_documentais": {
+    "ifp": 1.0,
+    "tem_contrato_assinado": true,
+    "tem_comprovante_ted": true,
+    "laudo_favoravel": true,
+    "score_fraude": 0.2,
+    "indicio_de_fraude": false
+  }
+}
