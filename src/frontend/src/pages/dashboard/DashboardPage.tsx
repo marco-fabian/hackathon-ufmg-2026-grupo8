@@ -13,11 +13,11 @@ function checkAderente(statusIA: string, decisaoAdv: string): boolean {
   return String(statusIA).toLowerCase() === String(decisaoAdv).toLowerCase()
 }
 
-const COLOR_SUCCESS = '#EA580C'   // laranja principal
-const COLOR_DANGER  = '#1A1A1A'   // preto
-const COLOR_BLUE    = '#F97316'   // laranja médio
-const COLOR_AMBER   = '#FB923C'   // laranja claro
-const COLOR_PURPLE  = '#7C2D12'   // marrom-laranja escuro
+const COLOR_ORANGE       = '#F97316'  // laranja
+const COLOR_BLACK        = '#1A1A1A'  // preto
+const COLOR_ORANGE_DARK  = '#EA580C'  // laranja escuro
+const COLOR_ORANGE_LIGHT = '#FB923C'  // laranja claro
+const COLOR_GRAY         = '#6B7280'  // cinza neutro
 
 type ChartType = 'acuracia' | 'mes-a-mes' | 'economia' | 'por-uf'
 
@@ -381,8 +381,8 @@ export default function DashboardPage() {
               data={acuraciaData}
               xAxisKey="name"
               series={[
-                { dataKey: 'Acatada',      label: 'Sugestão Acatada', color: COLOR_SUCCESS },
-                { dataKey: 'Não Acatada',  label: 'Não Acatada',      color: COLOR_DANGER  },
+                { dataKey: 'Acatada',      label: 'Sugestão Acatada', color: COLOR_ORANGE },
+                { dataKey: 'Não Acatada',  label: 'Não Acatada',      color: COLOR_BLACK  },
               ]}
             />
           )}
@@ -394,8 +394,8 @@ export default function DashboardPage() {
               data={mesMesData}
               xAxisKey="name"
               series={[
-                { dataKey: 'Em Andamento', label: 'Em Andamento', color: COLOR_BLUE    },
-                { dataKey: 'Finalizados',  label: 'Finalizados',  color: COLOR_SUCCESS },
+                { dataKey: 'Em Andamento', label: 'Em Andamento', color: COLOR_ORANGE },
+                { dataKey: 'Finalizados',  label: 'Finalizados',  color: COLOR_BLACK  },
               ]}
             />
           )}
@@ -408,10 +408,10 @@ export default function DashboardPage() {
               xAxisKey="name"
               formatValue={formatCurrencyCompact}
               series={[
-                { dataKey: 'Valor em Risco',     label: 'Valor em Risco',     color: COLOR_AMBER  },
-                { dataKey: 'Condenação Total',   label: 'Condenação Total',   color: COLOR_DANGER  },
-                { dataKey: 'Acordo Sugerido IA', label: 'Acordo Sugerido IA', color: COLOR_PURPLE  },
-                { dataKey: 'Economia Gerada',    label: 'Economia Gerada',    color: COLOR_SUCCESS },
+                { dataKey: 'Valor em Risco',     label: 'Valor em Risco',     color: COLOR_ORANGE_LIGHT },
+                { dataKey: 'Condenação Total',   label: 'Condenação Total',   color: COLOR_BLACK        },
+                { dataKey: 'Acordo Sugerido IA', label: 'Acordo Sugerido IA', color: COLOR_ORANGE_DARK  },
+                { dataKey: 'Economia Gerada',    label: 'Economia Gerada',    color: COLOR_GRAY         },
               ]}
             />
           )}
@@ -423,8 +423,8 @@ export default function DashboardPage() {
               data={ufData}
               xAxisKey="name"
               series={[
-                { dataKey: 'Processos',   label: 'Total',       color: COLOR_BLUE    },
-                { dataKey: 'Finalizados', label: 'Finalizados', color: COLOR_SUCCESS },
+                { dataKey: 'Processos',   label: 'Total',       color: COLOR_ORANGE },
+                { dataKey: 'Finalizados', label: 'Finalizados', color: COLOR_BLACK  },
               ]}
             />
           )}
