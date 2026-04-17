@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hackathon-ufmg-2026-grupo8/schemas/ifp.json",
+  "title": "IFP — Índice de Força Probatória",
+  "description": "Contrato de saída do módulo de Normalização+IFP, consumido pelo motor de decisão e pela UI do advogado. Versões v1 (produção, presença-based, 60k) e v2 (demo, LLM+qualidade, apenas casos com PDFs).",
+  "type": "object",
+  "required": ["processo_id", "ifp", "subsidios", "sinais_ausentes", "reasoning_curto"],
+  "properties": {
+    "processo_id": {
+      "type": "string",
+      "description": "Número CNJ do processo",
+      "example": "0801234-56.2024.8.10.0001"
+    },
+    "sub_assunto": {
+      "type": "string",
+      "enum": ["Golpe", "Genérico"],
+      "description": "Sub-assunto da aba Resultados; quando ausente, tratar como desconhecido"
+    },
+    "uf": {
+      "type": "string",
+      "description": "Sigla da UF do processo",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "ifp": {
+      "type": "object",
+      "required": ["score", "tier", "versao"],
+      "properties": {
+        "score": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Score 0–100 de força probatória"
+        },
+        "tier": {
+          "type": "string",
+          "enum": ["FORTE", "MÉDIO", "FRACO"],
+          "description": "FORTE ≥75, MÉDIO 50–74, FRACO <50"
+        },
+        "versao": {
+          "type": "string",
+          "enum": ["v1", "v2"],
+          "description": "v1 = presença-based; v2 = LLM+qualidade"
+        },
+        "componentes": {
+          "type": "object",
+          "description": "Apenas em v2: quebra do score em presença (0–60) e qualidade (0–40)",
+          "required": ["presenca", "qualidade"],
+          "properties": {
+            "presenca":  {"type": "integer", "minimum": 0, "maximum": 60},
+            "qualidade": {"type": "integer", "minimum": 0, "maximum": 40}
+          }
+        }
+      }
+    },
+    "subsidios": {
+      "type": "object",
+      "required": ["contrato", "extrato", "comprovante", "demonstrativo", "dossie", "laudo"],
+      "description": "Breakdown por tipo de subsídio",
+      "additionalProperties": {
+        "$ref": "#/definitions/subsidio"
+      }
+    },
+    "sinais_fortes": {
+      "type": "array",
+      "description": "Apenas em v2: lista de features positivas encontradas (ex: 'extrato_autor_movimentou_dinheiro')",
+      "items": {"type": "string"}
+    },
+    "sinais_ausentes": {
+      "type": "array",
+      "description": "Nomes dos subsídios ausentes",
+      "items": {
+        "type": "string",
+        "enum": ["contrato", "extrato", "comprovante", "demonstrativo", "dossie", "laudo"]
+      }
+    },
+    "reasoning_curto": {
+      "type": "string",
+      "description": "Uma frase explicando o score; usada como tooltip na UI"
+    }
+  },
+  "definitions": {
+    "subsidio": {
+      "type": "object",
+      "required": ["presente", "peso_aplicado"],
+      "properties": {
+        "presente": {"type": "boolean"},
+        "peso_aplicado": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 22,
+          "description": "Peso efetivamente somado ao score (0 se ausente)"
+        },
+        "features": {
+          "type": "object",
+          "description": "Apenas em v2: features extraídas do PDF via LLM",
+          "additionalProperties": true
+        },
+        "evidencia": {
+          "type": "string",
+          "description": "Apenas em v2: trecho/justificativa da extração"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "processo_id": "0801234-56.2024.8.10.0001",
+      "sub_assunto": "Golpe",
+      "uf": "MA",
+      "ifp": {"score": 100, "tier": "FORTE", "versao": "v1"},
+      "subsidios": {
+        "contrato":      {"presente": true, "peso_aplicado": 22},
+        "extrato":       {"presente": true, "peso_aplicado": 22},
+        "comprovante":   {"presente": true, "peso_aplicado": 15},
+        "demonstrativo": {"presente": true, "peso_aplicado": 12},
+        "dossie":        {"presente": true, "peso_aplicado": 14},
+        "laudo":         {"presente": true, "peso_aplicado": 15}
+      },
+      "sinais_ausentes": [],
+      "reasoning_curto": "Todos os 6 subsídios presentes."
+    },
+    {
+      "processo_id": "0654321-09.2024.8.04.0001",
+      "sub_assunto": "Genérico",
+      "uf": "AM",
+      "ifp": {"score": 42, "tier": "FRACO", "versao": "v1"},
+      "subsidios": {
+        "contrato":      {"presente": false, "peso_aplicado": 0},
+        "extrato":       {"presente": false, "peso_aplicado": 0},
+        "comprovante":   {"presente": true,  "peso_aplicado": 15},
+        "demonstrativo": {"presente": true,  "peso_aplicado": 12},
+        "dossie":        {"presente": false, "peso_aplicado": 0},
+        "laudo":         {"presente": true,  "peso_aplicado": 15}
+      },
+      "sinais_ausentes": ["contrato", "extrato", "dossie"],
+      "reasoning_curto": "3 de 6 subsídios presentes; falta: contrato, extrato, dossie."
+    }
+  ]
+}
