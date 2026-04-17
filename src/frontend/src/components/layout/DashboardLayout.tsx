@@ -103,7 +103,7 @@ function Sidebar() {
 
   return (
     <aside
-      style={{ backgroundColor: 'var(--color-sidebar)', width: '240px', minHeight: '100dvh' }}
+      style={{ backgroundColor: 'var(--color-sidebar)', width: '240px' }}
       className="flex flex-col flex-shrink-0 select-none"
     >
       {/* Logo */}
@@ -123,7 +123,7 @@ function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto min-h-0">
         <p
           style={{ color: 'var(--color-text-muted)' }}
           className="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-widest"
@@ -291,7 +291,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children, pageTitle = 'Dashboard' }: DashboardLayoutProps) {
   return (
-    <div className="flex min-h-dvh">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar />
 
       {/* Main column */}
@@ -302,8 +302,8 @@ export function DashboardLayout({ children, pageTitle = 'Dashboard' }: Dashboard
         <Header title={pageTitle} />
 
         {/* Content area */}
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-[1280px] mx-auto w-full">{children}</div>
+        <main className="flex-1 overflow-auto p-6 flex flex-col">
+          <div className="max-w-[1280px] mx-auto w-full flex-1">{children}</div>
         </main>
       </div>
     </div>

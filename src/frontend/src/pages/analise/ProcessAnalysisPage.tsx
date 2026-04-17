@@ -7,7 +7,7 @@ export default function ProcessAnalysisPage() {
 
   return (
     <DashboardLayout pageTitle="Análise de Processo · IA Recomendação">
-      <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
         {/* Coluna Esquerda: Visualizador de PDF (2/3) */}
         <div className="lg:w-2/3 flex flex-col gap-4">
           <div 
