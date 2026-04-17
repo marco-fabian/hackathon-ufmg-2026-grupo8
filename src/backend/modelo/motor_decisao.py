@@ -42,6 +42,8 @@ class RazaoOverride(str, Enum):
     NENHUMA = "NENHUMA"
     DOCUMENTACAO_COMPLETA_SEM_FRAUDE = "DOCUMENTACAO_COMPLETA_SEM_FRAUDE"
     FRAUDE_CONFIRMADA_SEM_CONTRATO = "FRAUDE_CONFIRMADA_SEM_CONTRATO"
+    IFP_FORTE = "IFP_FORTE"
+    IFP_FRACO = "IFP_FRACO"
 
 
 @dataclass
@@ -71,9 +73,22 @@ class ResultadoDecisao:
 def aplicar_overrides_documentais(
     features_doc: Optional[dict],
 ) -> tuple[Optional[Decisao], RazaoOverride]:
-    """Regras binarias de borda. Retorna (None, NENHUMA) na zona cinza."""
+    """Regras binarias de borda. Retorna (None, NENHUMA) na zona cinza.
+
+    Ordem de prioridade:
+      1. IFP (sinal agregado mais forte) - se >= ALTO ou <= BAIXO, decide
+      2. Regras legadas baseadas em flags individuais (contrato+TED+laudo+score_fraude)
+    """
     if not features_doc:
         return None, RazaoOverride.NENHUMA
+
+    ifp = features_doc.get("ifp")
+    if ifp is not None:
+        ifp_f = float(ifp)
+        if ifp_f >= cfg.OVERRIDE_IFP_ALTO:
+            return Decisao.DEFESA, RazaoOverride.IFP_FORTE
+        if ifp_f <= cfg.OVERRIDE_IFP_BAIXO:
+            return Decisao.ACORDO, RazaoOverride.IFP_FRACO
 
     tem_contrato = bool(features_doc.get("tem_contrato_assinado", False))
     tem_ted = bool(features_doc.get("tem_comprovante_ted", False))
@@ -104,7 +119,24 @@ def _explicar(resultado: ResultadoDecisao) -> str:
         f"Custo esperado da defesa: R$ {resultado.custo_esperado_defesa:,.2f}. "
     )
     if resultado.override_aplicado:
-        if resultado.razao_override == RazaoOverride.DOCUMENTACAO_COMPLETA_SEM_FRAUDE:
+        if resultado.razao_override == RazaoOverride.IFP_FORTE:
+            ifp_val = resultado.features_entrada.get("features_documentais", {}).get("ifp")
+            ifp_txt = f" (IFP = {ifp_val:.2f})" if isinstance(ifp_val, (int, float)) else ""
+            base += (
+                f"A decisao foi sobreposta pela forca probatoria dos subsidios{ifp_txt}: "
+                f"documentacao agregada acima do limiar de {cfg.OVERRIDE_IFP_ALTO:.2f}. "
+                f"Recomenda-se DEFESA independente do modelo ML."
+            )
+        elif resultado.razao_override == RazaoOverride.IFP_FRACO:
+            ifp_val = resultado.features_entrada.get("features_documentais", {}).get("ifp")
+            ifp_txt = f" (IFP = {ifp_val:.2f})" if isinstance(ifp_val, (int, float)) else ""
+            base += (
+                f"A decisao foi sobreposta pela fragilidade dos subsidios{ifp_txt}: "
+                f"documentacao agregada abaixo do limiar de {cfg.OVERRIDE_IFP_BAIXO:.2f}. "
+                f"Recomenda-se ACORDO (valor sugerido: "
+                f"R$ {resultado.valor_acordo_sugerido:,.2f}, alpha = {resultado.alpha_aplicado:.2f})."
+            )
+        elif resultado.razao_override == RazaoOverride.DOCUMENTACAO_COMPLETA_SEM_FRAUDE:
             base += (
                 "A decisao foi sobreposta pela regra documental: contrato assinado, "
                 "comprovante TED e laudo favoravel presentes, com baixo score de fraude. "
