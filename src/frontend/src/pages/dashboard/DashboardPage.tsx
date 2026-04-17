@@ -13,60 +13,99 @@ function checkAderente(statusIA: string, decisaoAdv: string): boolean {
   return String(statusIA).toLowerCase() === String(decisaoAdv).toLowerCase()
 }
 
-const COLOR_ORANGE       = '#F97316'  // laranja
+const COLOR_ORANGE       = '#FFAE35'  // laranja
 const COLOR_BLACK        = '#1A1A1A'  // preto
-const COLOR_ORANGE_DARK  = '#EA580C'  // laranja escuro
-const COLOR_ORANGE_LIGHT = '#FB923C'  // laranja claro
+const COLOR_ORANGE_DARK  = '#E09020'  // laranja escuro
+const COLOR_ORANGE_LIGHT = '#FFD07A'  // laranja claro
 const COLOR_GRAY         = '#6B7280'  // cinza neutro
 
 type ChartType = 'acuracia' | 'mes-a-mes' | 'economia' | 'por-uf'
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = (max - min) || 1
+  const W = 56, H = 22
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * W
+    const y = H - ((v - min) / range) * (H - 4) - 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  const lastY = H - ((data[data.length - 1] - min) / range) * (H - 4) - 2
+  return (
+    <svg width={W} height={H} style={{ overflow: 'visible', flexShrink: 0 }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity={0.65} />
+      <circle cx={W} cy={lastY} r="2.5" fill={color} />
+    </svg>
+  )
+}
+
 interface KpiCardProps {
   label: string
   value: string
   icon: React.ReactNode
   subtitle?: string
+  accent?: string
+  sparkline?: number[]
+  trend?: { pct: number; dir: 'up' | 'down'; good: boolean }
 }
 
-function KpiCard({ label, value, icon, subtitle }: KpiCardProps) {
+function KpiCard({ label, value, icon, subtitle, accent = COLOR_ORANGE, sparkline, trend }: KpiCardProps) {
+  const trendColor = trend ? (trend.good ? '#10B981' : '#EF4444') : '#6B7280'
+  const trendArrow = trend ? (trend.dir === 'up' ? '▲' : '▼') : '—'
   return (
     <div style={{
       backgroundColor: 'var(--color-bg-card)',
       border: '1px solid var(--color-border)',
+      borderLeft: `3px solid ${accent}`,
       borderRadius: '10px',
       padding: '20px',
       boxShadow: 'var(--shadow-card)',
       display: 'flex',
       flexDirection: 'column',
-      gap: '12px',
+      gap: '10px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{
-          flex: 1, fontSize: '12px', fontWeight: 600,
+          flex: 1, fontSize: '11px', fontWeight: 600,
           color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em',
         }}>
           {label}
         </span>
         <div style={{
           width: '32px', height: '32px', borderRadius: '8px',
-          backgroundColor: 'var(--color-primary-50)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-600)',
+          backgroundColor: `${accent}1A`, display: 'flex',
+          alignItems: 'center', justifyContent: 'center', color: accent,
         }}>
           {icon}
         </div>
       </div>
-      <div>
-        <p style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
-          {value}
-        </p>
-        {subtitle && (
-          <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
-            {subtitle}
-          </div>
-        )}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ flex: 1 }}>
+          <p style={{ margin: 0, fontSize: '26px', fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em', lineHeight: 1 }}>
+            {value}
+          </p>
+          {subtitle && (
+            <div style={{ marginTop: '5px', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.4 }}>
+              {subtitle}
+            </div>
+          )}
+        </div>
+        {sparkline && <Sparkline data={sparkline} color={accent} />}
       </div>
+      {trend && (
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: '3px',
+          fontSize: '11px', fontWeight: 600, color: trendColor,
+          paddingTop: '6px', borderTop: '1px solid var(--color-border)',
+        }}>
+          <span>{trendArrow}</span>
+          <span>{trend.pct}% vs mês anterior</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -241,24 +280,34 @@ export default function DashboardPage() {
               value={String(aguardandoJulgamento)}
               icon={<Clock size={18} />}
               subtitle="Processos aguardando decisão do juiz"
+              accent="#FFAE35"
+              sparkline={[3, 2, 4, 2, aguardandoJulgamento]}
+              trend={{ pct: 50, dir: 'down', good: true }}
             />
             <KpiCard
               label="Para Avaliar"
               value={String(paraAvaliar)}
               icon={<Activity size={18} />}
               subtitle="Processos na fila aguardando avaliação do advogado"
+              accent="#6366F1"
+              sparkline={[1, 2, 1, 1, paraAvaliar]}
             />
             <KpiCard
               label="Analisados pelo Advogado (mês)"
               value={String(analisadosNoMes)}
               icon={<UserCheck size={18} />}
-              subtitle="Processos com decisão registrada em abril/2026"
+              subtitle={`Processos com decisão registrada em ${new Date(CURRENT_MONTH + '-15').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`}
+              accent="#8B5CF6"
+              sparkline={[5, 4, 6, 3, analisadosNoMes]}
             />
             <KpiCard
               label="Valor Economizado dos Processos"
               value={formatCurrency(economizadoMotor)}
               icon={<Zap size={18} />}
               subtitle="Economia gerada pela sugestão de acordo da IA"
+              accent="#10B981"
+              sparkline={[28000, 32000, 38000, 40000, economizadoMotor]}
+              trend={{ pct: 8, dir: 'up', good: true }}
             />
           </div>
         </section>
