@@ -33,6 +33,11 @@ Por que separar em dois modelos + formula:
 4. **α e Limiar derivados dos dados** via backtesting sobre a base de 60k.
 
 ### Modelos
+- **Normalização + IFP (Índice de Força Probatória)** — responsabilidade desta branch `backend`. Duas versões:
+  - **IFP v1** (`src/ifp_v1_heuristico.py`): presença-based, roda sobre o xlsx de 60k; usado no dataset de treino e na produção histórica. Sem LLM.
+  - **IFP v2** (`src/ifp_v2.py` + `src/extractors/`): extrai features dos PDFs via OpenAI Structured Outputs (`gpt-4o-mini`); demo-only porque só há PDFs nos 2 casos-exemplo. Adiciona componente de qualidade (0–40) ao score de presença (0–60).
+- **Motor de decisão** — consome `data/training.csv` (19 colunas, split 80/20 estratificado) e `ifp_score`/`ifp_tier` como features principais; decide defesa/acordo e sugere valor.
+- **Interface do advogado (front-end)** — consome `docs/schemas/ifp.json` + exemplos em `docs/examples/ifp_v2_*.json`; renderiza o "termômetro" e a recomendação.
 
 | Modelo | Tipo | Target | Algoritmo |
 |---|---|---|---|

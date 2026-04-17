@@ -77,4 +77,4 @@ Baseado no `CLAUDE.md` e nas convenções (schemas primeiro, baseline antes de L
 
 1. Rodar `/plugin marketplace add anthropics/skills` e habilitar `document-skills` + `example-skills`.
 2. Instalar `academic-pptx-skill` (aula de pitch) e `prompt-eval-harness` (congelar `Caso_01`/`Caso_02`).
-3. Autorar `ifp-v1-baseline` primeiro — é 1-2 h de trabalho e destrava motor + UI do resto do time.
+3. Autorar `ifp-v1-baseline` primeiro — é 1-2 
