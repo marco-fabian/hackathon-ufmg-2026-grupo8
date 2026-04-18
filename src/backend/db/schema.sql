@@ -60,3 +60,17 @@ CREATE INDEX IF NOT EXISTS idx_decisoes_uf        ON decisoes_processo(uf);
 CREATE INDEX IF NOT EXISTS idx_decisoes_ifp_tier  ON decisoes_processo(ifp_tier);
 CREATE INDEX IF NOT EXISTS idx_decisoes_indicio   ON decisoes_processo(indicio_de_fraude);
 CREATE INDEX IF NOT EXISTS idx_decisoes_politicas ON decisoes_processo USING GIN (politicas);
+
+
+-- Decisao final do escritorio de advocacia (persiste o clique de
+-- "Aceitar (Acordo)" / "Recusar (Defesa)" da tela de analise).
+CREATE TABLE IF NOT EXISTS decisao_escritorio (
+    processo_id    VARCHAR(60)   PRIMARY KEY REFERENCES decisoes_processo(processo_id) ON DELETE CASCADE,
+    decisao        VARCHAR(10)   NOT NULL CHECK (decisao IN ('ACORDO','DEFESA')),
+    valor_fechado  NUMERIC(12,2),
+    decidido_em    TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CONSTRAINT decisao_escritorio_valor_ck CHECK (
+        (decisao = 'ACORDO' AND valor_fechado IS NOT NULL AND valor_fechado > 0)
+        OR (decisao = 'DEFESA' AND valor_fechado IS NULL)
+    )
+);

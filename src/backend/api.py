@@ -23,8 +23,9 @@ sys.modules["__main__"].TargetEncodingStats = TargetEncodingStats  # type: ignor
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
+from src.backend.db.connection import conectar  # noqa: E402
 from src.backend.modelo.motor_decisao import MotorDecisao  # noqa: E402
 from src.backend.modelo.rag_jurisprudencia import get_rag  # noqa: E402
 
@@ -187,48 +188,201 @@ def obter_caso(slug: str) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-_POLICY_FALLBACK_ORDER = ["Balanceada", "Moderada", "Conservadora", "Arriscada", "Agressiva", "Maxima"]
+# ─── Analise (lê de decisoes_processo + decisao_escritorio) ───────────────────
+
+POLITICAS_ANALISE = ("Conservadora", "Moderada", "Arriscada")
 
 
-@app.get("/api/processos-finalizados")
-def listar_processos_finalizados(
-    limit: int = 20,
-    offset: int = 0,
-    uf: Optional[str] = None,
-) -> list[dict[str, Any]]:
-    from psycopg.rows import dict_row
-    from src.backend.db.connection import conectar
+class DecisaoEscritorioReq(BaseModel):
+    decisao: str = Field(pattern="^(ACORDO|DEFESA)$")
+    valor_fechado: Optional[float] = None
 
-    filtro = "WHERE uf = %s" if uf else ""
-    params: list = [limit, offset]
-    if uf:
-        params = [uf, limit, offset]
 
-    with conectar() as conn:
-        with conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(
-                f"""
-                SELECT numero_processo, uf, sub_assunto,
-                       resultado_macro, resultado_micro,
-                       valor_causa, valor_condenacao
-                FROM processos
-                {filtro}
-                ORDER BY numero_processo
-                LIMIT %s OFFSET %s
-                """,
-                params,
+def _bloco_decisao_escritorio(row: Optional[tuple[Any, ...]]) -> Optional[dict[str, Any]]:
+    if row is None or row[0] is None:
+        return None
+    decisao, valor_fechado, decidido_em = row
+    return {
+        "decisao": decisao,
+        "valor_fechado": float(valor_fechado) if valor_fechado is not None else None,
+        "decidido_em": decidido_em.isoformat() if decidido_em is not None else None,
+    }
+
+
+def _sugestoes_valor(politicas: dict[str, Any]) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for nome in POLITICAS_ANALISE:
+        bloco = politicas.get(nome)
+        if not bloco:
+            continue
+        valor = bloco.get("valor_acordo_sugerido")
+        if valor is None:
+            continue
+        out.append({
+            "politica": nome,
+            "valor": valor,
+            "taxa_aceite_estimada": bloco.get("taxa_aceite_estimada"),
+            "recomendado": nome == "Moderada",
+        })
+    out.sort(key=lambda s: (not s["recomendado"], s["politica"]))
+    return out
+
+
+@app.get("/api/analise")
+def listar_analises() -> list[dict[str, Any]]:
+    sql = """
+        SELECT
+            d.processo_id,
+            d.uf,
+            d.sub_assunto,
+            d.valor_causa,
+            d.ifp_tier,
+            d.indicio_de_fraude,
+            d.politicas -> 'Moderada' ->> 'decisao'             AS decisao_moderada,
+            (d.politicas -> 'Moderada' ->> 'valor_acordo_sugerido')::numeric AS valor_acordo_moderada,
+            (d.politicas -> 'Moderada' ->> 'probabilidade_perda')::numeric   AS probabilidade_perda,
+            d.criado_em,
+            de.decisao,
+            de.valor_fechado,
+            de.decidido_em
+        FROM decisoes_processo d
+        LEFT JOIN decisao_escritorio de ON de.processo_id = d.processo_id
+        ORDER BY d.criado_em DESC
+    """
+    with conectar() as conn, conn.cursor() as cur:
+        cur.execute(sql)
+        rows = cur.fetchall()
+
+    result: list[dict[str, Any]] = []
+    for r in rows:
+        (
+            processo_id, uf, sub_assunto, valor_causa,
+            ifp_tier, indicio_de_fraude,
+            decisao_mod, valor_acordo_mod, prob_perda, criado_em,
+            de_decisao, de_valor, de_em,
+        ) = r
+        result.append({
+            "processo_id": processo_id,
+            "uf": uf,
+            "sub_assunto": sub_assunto,
+            "valor_causa": float(valor_causa),
+            "ifp_tier": ifp_tier,
+            "indicio_de_fraude": indicio_de_fraude,
+            "decisao_moderada": decisao_mod,
+            "valor_acordo_moderada": float(valor_acordo_mod) if valor_acordo_mod is not None else None,
+            "probabilidade_perda": float(prob_perda) if prob_perda is not None else None,
+            "criado_em": criado_em.isoformat() if criado_em is not None else None,
+            "decisao_escritorio": _bloco_decisao_escritorio((de_decisao, de_valor, de_em)),
+        })
+    return result
+
+
+@app.get("/api/analise/{processo_id:path}")
+def obter_analise(processo_id: str) -> dict[str, Any]:
+    sql = """
+        SELECT
+            d.processo_id, d.uf, d.sub_assunto, d.valor_causa,
+            d.ifp_score, d.ifp_score_normalizado, d.ifp_tier,
+            d.ifp_presenca, d.ifp_qualidade,
+            d.ifp_sinais_fortes, d.ifp_sinais_ausentes, d.ifp_reasoning,
+            d.tem_contrato, d.tem_extrato, d.tem_comprovante,
+            d.tem_dossie, d.tem_demonstrativo, d.tem_laudo, d.laudo_favoravel,
+            d.score_fraude, d.indicio_de_fraude,
+            d.indicadores_fraude, d.sinais_protetivos, d.justificativa_fraude,
+            d.politicas, d.criado_em,
+            de.decisao, de.valor_fechado, de.decidido_em
+        FROM decisoes_processo d
+        LEFT JOIN decisao_escritorio de ON de.processo_id = d.processo_id
+        WHERE d.processo_id = %s
+    """
+    with conectar() as conn, conn.cursor() as cur:
+        cur.execute(sql, (processo_id,))
+        row = cur.fetchone()
+
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"Processo '{processo_id}' nao encontrado")
+
+    (
+        pid, uf, sub_assunto, valor_causa,
+        ifp_score, ifp_norm, ifp_tier, ifp_pres, ifp_qual,
+        ifp_sinais_fortes, ifp_sinais_ausentes, ifp_reasoning,
+        tem_contrato, tem_extrato, tem_comprovante,
+        tem_dossie, tem_demonstrativo, tem_laudo, laudo_favoravel,
+        score_fraude, indicio_de_fraude,
+        indicadores_fraude, sinais_protetivos, justificativa_fraude,
+        politicas, criado_em,
+        de_decisao, de_valor, de_em,
+    ) = row
+
+    return {
+        "header": {
+            "processo_id": pid,
+            "uf": uf,
+            "sub_assunto": sub_assunto,
+            "valor_causa": float(valor_causa),
+            "criado_em": criado_em.isoformat() if criado_em is not None else None,
+        },
+        "ifp": {
+            "score": ifp_score,
+            "score_normalizado": float(ifp_norm),
+            "tier": ifp_tier,
+            "presenca": ifp_pres,
+            "qualidade": ifp_qual,
+            "sinais_fortes": ifp_sinais_fortes,
+            "sinais_ausentes": ifp_sinais_ausentes,
+            "reasoning": ifp_reasoning,
+        },
+        "documentacao": {
+            "tem_contrato": tem_contrato,
+            "tem_extrato": tem_extrato,
+            "tem_comprovante": tem_comprovante,
+            "tem_dossie": tem_dossie,
+            "tem_demonstrativo": tem_demonstrativo,
+            "tem_laudo": tem_laudo,
+            "laudo_favoravel": laudo_favoravel,
+        },
+        "analise_fraude": {
+            "score_fraude": float(score_fraude),
+            "indicio_de_fraude": indicio_de_fraude,
+            "indicadores_fraude": indicadores_fraude,
+            "sinais_protetivos": sinais_protetivos,
+            "justificativa": justificativa_fraude,
+        },
+        "politicas": politicas,
+        "sugestoes_valor": _sugestoes_valor(politicas),
+        "decisao_escritorio": _bloco_decisao_escritorio((de_decisao, de_valor, de_em)),
+    }
+
+
+@app.post("/api/analise/{processo_id:path}/decisao-escritorio")
+def registrar_decisao_escritorio(processo_id: str, req: DecisaoEscritorioReq) -> dict[str, Any]:
+    if req.decisao == "ACORDO":
+        if req.valor_fechado is None or req.valor_fechado <= 0:
+            raise HTTPException(
+                status_code=400,
+                detail="valor_fechado obrigatorio e > 0 quando decisao=ACORDO",
             )
-            rows = cur.fetchall()
+        valor = req.valor_fechado
+    else:
+        valor = None
 
-    return [
-        {
-            "processo_id": r["numero_processo"],
-            "uf": r["uf"],
-            "sub_assunto": r["sub_assunto"],
-            "resultado_macro": r["resultado_macro"],
-            "resultado_micro": r["resultado_micro"],
-            "valor_causa": float(r["valor_causa"]),
-            "valor_condenacao": float(r["valor_condenacao"]),
-        }
-        for r in rows
-    ]
+    with conectar() as conn, conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM decisoes_processo WHERE processo_id = %s", (processo_id,))
+        if cur.fetchone() is None:
+            raise HTTPException(status_code=404, detail=f"Processo '{processo_id}' nao encontrado")
+
+        cur.execute(
+            """
+            INSERT INTO decisao_escritorio (processo_id, decisao, valor_fechado)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (processo_id) DO UPDATE
+               SET decisao = EXCLUDED.decisao,
+                   valor_fechado = EXCLUDED.valor_fechado,
+                   decidido_em = now()
+            RETURNING decisao, valor_fechado, decidido_em
+            """,
+            (processo_id, req.decisao, valor),
+        )
+        row = cur.fetchone()
+
+    return _bloco_decisao_escritorio(row) or {}
