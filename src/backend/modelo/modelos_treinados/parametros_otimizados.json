@@ -5,7 +5,7 @@
   "politicas": {
     "Conservadora": {
       "taxa_alvo": 0.1,
-      "alpha": 0.5,
+      "alpha": 0.80,
       "limiar": 7000.0,
       "taxa_acordo_efetiva": 0.22741666666666666,
       "economia_total": 15527525.384741426,
@@ -15,7 +15,7 @@
     },
     "Moderada": {
       "taxa_alvo": 0.25,
-      "alpha": 0.5,
+      "alpha": 0.65,
       "limiar": 4000.0,
       "taxa_acordo_efetiva": 0.32825,
       "economia_total": 19605148.255308643,
@@ -35,7 +35,7 @@
     },
     "Agressiva": {
       "taxa_alvo": 0.6,
-      "alpha": 0.5,
+      "alpha": 0.35,
       "limiar": 2000.0,
       "taxa_acordo_efetiva": 0.72525,
       "economia_total": 25887159.020222634,
@@ -45,7 +45,7 @@
     },
     "Maxima": {
       "taxa_alvo": 1.0,
-      "alpha": 0.5,
+      "alpha": 0.20,
       "limiar": 500.0,
       "taxa_acordo_efetiva": 1.0,
       "economia_total": 28475084.969724063,
