@@ -25,3 +25,8 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// ─── Endpoints ───────────────────────────────────────────────────────────────
+export async function salvarDecisaoEscritorio(processoId: string | number, payload: any) {
+  const response = await api.post(`/analise/${processoId}/decisao-escritorio`, payload)
+  return response.data
+}
