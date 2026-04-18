@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -20,27 +19,11 @@ import {
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useView } from "@/context/ViewContext";
 import { mockProcessos } from "@/data/mockData";
-import { obterCaso, decidir, obterMetricas } from "@/services/casosService";
+import { obterCaso, decidir, obterMetricas, listarArquivosCaso } from "@/services/casosService";
 import { salvarDecisaoEscritorio } from "@/services/api";
-import type { ShapInfo, Metricas, JurisprudenciaRef } from "@/types/backend";
-=======
-import { useState, useEffect, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { FileText, BrainCircuit, CheckCircle2, DollarSign, Scale, MessageSquare, UploadCloud, Clock, FileUp, Check, Download, X, ArrowLeft, Folder } from 'lucide-react'
-import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { useView } from '@/context/ViewContext'
-import { mockProcessos } from '@/data/mockData'
-import { obterCaso, decidir, obterMetricas, listarArquivosCaso } from '@/services/casosService'
-import type { ArquivoCaso, ShapInfo, Metricas, JurisprudenciaRef } from '@/types/backend'
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
+import type { ArquivoCaso, ShapInfo, Metricas, JurisprudenciaRef } from "@/types/backend";
 
-const POLITICAS = [
-  "Conservadora",
-  "Moderada",
-  "Balanceada",
-  "Agressiva",
-  "Maxima",
-] as const;
+const POLITICAS = ["Conservadora", "Moderada", "Arriscada"] as const;
 type NomePolitica = (typeof POLITICAS)[number];
 
 interface PayloadProcesso {
@@ -160,11 +143,10 @@ export default function ProcessAnalysisPage() {
     explicacao: "",
   };
 
-<<<<<<< HEAD
   const [analise, setAnalise] = useState<AnaliseState>(fallback);
   const [payload, setPayload] = useState<PayloadProcesso | null>(null);
   const [politicaSelecionada, setPoliticaSelecionada] =
-    useState<NomePolitica>("Balanceada");
+    useState<NomePolitica>("Moderada");
   const [loadingPolitica, setLoadingPolitica] = useState(false);
   const [shap, setShap] = useState<ShapInfo | null>(null);
   const [metricas, setMetricas] = useState<Metricas | null>(null);
@@ -181,23 +163,8 @@ export default function ProcessAnalysisPage() {
     useState<number>(mockValorIdeal);
   const [modalSelection, setModalSelection] = useState<number>(mockValorIdeal);
   const [isSubmitting, setIsSubmitting] = useState(false);
-=======
-  const [analise, setAnalise] = useState<AnaliseState>(fallback)
-  const [payload, setPayload] = useState<PayloadProcesso | null>(null)
-  const [politicaSelecionada, setPoliticaSelecionada] = useState<NomePolitica>('Balanceada')
-  const [loadingPolitica, setLoadingPolitica] = useState(false)
-  const [shap, setShap] = useState<ShapInfo | null>(null)
-  const [metricas, setMetricas] = useState<Metricas | null>(null)
-  const [jurisprudencias, setJurisprudencias] = useState<JurisprudenciaRef[]>([])
-  const [arquivos, setArquivos] = useState<ArquivoCaso[]>([])
-  const [pdfPreview, setPdfPreview] = useState<{ url: string; nome: string } | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [isAnalyzeModalOpen, setIsAnalyzeModalOpen] = useState(false)
-  const [pendingCase, setPendingCase] = useState<CasoMock | null>(null)
-  const [actionModalState, setActionModalState] = useState<'none' | 'accept' | 'reject'>('none')
-  const [valorSelecionado, setValorSelecionado] = useState<number>(mockValorIdeal)
-  const [modalSelection, setModalSelection] = useState<number>(mockValorIdeal)
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
+  const [arquivos, setArquivos] = useState<ArquivoCaso[]>([]);
+  const [pdfPreview, setPdfPreview] = useState<{ url: string; nome: string } | null>(null);
 
   const aplicarResultado = useCallback((estado: AnaliseState) => {
     const novoValor = estado.valorAcordoSugerido ?? 0;
@@ -209,19 +176,12 @@ export default function ProcessAnalysisPage() {
   // Quando um caso é selecionado, preenche o detalhe com os dados do mock
   // e busca jurisprudências via API
   useEffect(() => {
-<<<<<<< HEAD
     if (!selectedCase) return;
     setShap(null);
     setDecision(null);
     setJurisprudencias([]);
-=======
-    if (!selectedCase) return
-    setShap(null)
-    setDecision(null)
-    setJurisprudencias([])
-    setArquivos([])
-    listarArquivosCaso(selectedCase.id).then(setArquivos).catch(() => {})
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
+    setArquivos([]);
+    listarArquivosCaso(selectedCase.id).then(setArquivos).catch(() => {});
     if (selectedCase.dadosPreenchidos) {
       aplicarResultado(selectedCase.dadosPreenchidos);
     } else {
@@ -269,7 +229,7 @@ export default function ProcessAnalysisPage() {
           uf: p.uf,
           sub_assunto: p.sub_assunto,
           valor_causa: p.valor_causa,
-          policy: "Balanceada",
+          policy: "Moderada",
           include_shap: true,
           features_documentais: p.features_documentais,
         })
@@ -776,58 +736,29 @@ export default function ProcessAnalysisPage() {
               </div>
               <div className="p-5 flex-1 overflow-y-auto">
                 <div className="space-y-3">
-<<<<<<< HEAD
-                  {[
-                    {
-                      name: "Contrato_Financiamento_Assinado.pdf",
-                      info: "Banco UFMG • 1.2 MB",
-                    },
-                    {
-                      name: "Extrato_Movimentacao_2023.pdf",
-                      info: "Banco UFMG • 850 KB",
-                    },
-                    {
-                      name: "Peticao_Inicial_Autos.pdf",
-                      info: "Documento do Tribunal • 2.1 MB",
-                    },
-                  ].map((file) => (
-                    <div
-                      key={file.name}
-                      className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group"
-                    >
-=======
                   {arquivos.length === 0 && (
                     <p className="text-xs text-slate-400 text-center py-4">Nenhum arquivo encontrado.</p>
                   )}
-                  {arquivos.map(file => (
-                    <button key={file.nome} onClick={() => setPdfPreview({ url: file.url, nome: file.nome })}
-                      className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group text-left">
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
+                  {arquivos.map((file) => (
+                    <button
+                      key={file.nome}
+                      onClick={() => setPdfPreview({ url: file.url, nome: file.nome })}
+                      className="w-full flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group text-left"
+                    >
                       <div className="flex items-center gap-4">
                         <div className="bg-red-50 text-red-600 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
                           <FileText size={20} />
                         </div>
                         <div>
-<<<<<<< HEAD
                           <p className="font-medium text-sm text-slate-800 group-hover:text-blue-700 transition-colors">
-                            {file.name}
+                            {file.nome}
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            {file.info}
+                            {file.tamanho_kb} KB
                           </p>
-                        </div>
-                      </div>
-                      <button
-                        className="text-slate-400 group-hover:text-blue-600 p-2 rounded-md transition-colors"
-                        title="Baixar documento"
-                      >
-=======
-                          <p className="font-medium text-sm text-slate-800 group-hover:text-blue-700 transition-colors">{file.nome}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{file.tamanho_kb} KB</p>
                         </div>
                       </div>
                       <span className="text-slate-400 group-hover:text-blue-600 p-2 rounded-md transition-colors">
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
                         <Download size={18} />
                       </span>
                     </button>
@@ -876,59 +807,71 @@ export default function ProcessAnalysisPage() {
             </div>
             <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-<<<<<<< HEAD
-                {[
-                  {
-                    name: "Contrato_Financiamento_Assinado.pdf",
-                    info: "Banco UFMG • 1.2 MB",
-                  },
-                  {
-                    name: "Extrato_Movimentacao_2023.pdf",
-                    info: "Banco UFMG • 850 KB",
-                  },
-                  {
-                    name: "Peticao_Inicial_Autos.pdf",
-                    info: "Documento do Tribunal • 2.1 MB",
-                  },
-                ].map((file) => (
-                  <div
-                    key={file.name}
-                    className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden"
-                  >
-=======
                 {arquivos.length === 0 && (
                   <p className="text-xs text-slate-400 col-span-3 text-center py-8">Nenhum arquivo encontrado.</p>
                 )}
-                {arquivos.map(file => (
-                  <div key={file.nome} className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden">
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
+                {arquivos.map((file) => (
+                  <div
+                    key={file.nome}
+                    className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden"
+                  >
                     <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="flex items-start gap-4 mb-5 relative z-10">
                       <div className="bg-red-50 text-red-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
                         <FileText size={24} />
                       </div>
                       <div>
-<<<<<<< HEAD
                         <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2">
-                          {file.name}
+                          {file.nome}
                         </p>
                         <p className="text-xs text-slate-500 mt-1">
-                          {file.info}
+                          {file.tamanho_kb} KB
                         </p>
-=======
-                        <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2">{file.nome}</p>
-                        <p className="text-xs text-slate-500 mt-1">{file.tamanho_kb} KB</p>
->>>>>>> 9a4ede307d08d01cef6a41f0c165317e8a866508
                       </div>
                     </div>
-                    <button onClick={() => setPdfPreview({ url: file.url, nome: file.nome })}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all relative z-10">
+                    <button
+                      onClick={() => setPdfPreview({ url: file.url, nome: file.nome })}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all relative z-10"
+                    >
                       <Download size={16} />
                       Visualizar Documento
                     </button>
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Preview PDF */}
+        {pdfPreview && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setPdfPreview(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
+                <div className="flex items-center gap-2">
+                  <FileText size={16} className="text-red-500" />
+                  <span className="text-sm font-medium text-slate-700 truncate max-w-md">
+                    {pdfPreview.nome}
+                  </span>
+                </div>
+                <button
+                  onClick={() => setPdfPreview(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <iframe
+                src={pdfPreview.url}
+                className="flex-1 w-full border-0"
+                title={pdfPreview.nome}
+              />
             </div>
           </div>
         )}
@@ -1050,24 +993,6 @@ export default function ProcessAnalysisPage() {
                   {isSubmitting ? "Salvando..." : "Confirmar Decisão"}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de Preview PDF */}
-        {pdfPreview && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setPdfPreview(null)}>
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200 bg-slate-50">
-                <div className="flex items-center gap-2">
-                  <FileText size={16} className="text-red-500" />
-                  <span className="text-sm font-medium text-slate-700 truncate max-w-md">{pdfPreview.nome}</span>
-                </div>
-                <button onClick={() => setPdfPreview(null)} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-500 transition-colors">
-                  <X size={18} />
-                </button>
-              </div>
-              <iframe src={pdfPreview.url} className="flex-1 w-full border-0" title={pdfPreview.nome} />
             </div>
           </div>
         )}

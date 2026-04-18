@@ -43,7 +43,7 @@ DOCS_EXAMPLES = ROOT / "docs" / "examples"
 MODELS_DIR = ROOT / "src" / "backend" / "modelo" / "modelos_treinados"
 PARAMS_PATH = MODELS_DIR / "parametros_otimizados.json"
 
-POLITICAS_ORDENADAS = ["Conservadora", "Moderada", "Balanceada", "Agressiva", "Maxima"]
+POLITICAS_ORDENADAS = ["Conservadora", "Moderada", "Arriscada"]
 
 # Pré-carrega todos os 5 motores uma vez na inicialização
 _motores: dict[str, MotorDecisao] = {}
@@ -384,6 +384,42 @@ def obter_analise(processo_id: str) -> dict[str, Any]:
         "sugestoes_valor": _sugestoes_valor(politicas),
         "decisao_escritorio": _bloco_decisao_escritorio((de_decisao, de_valor, de_em)),
     }
+
+
+@app.get("/api/processos-finalizados")
+def listar_processos_finalizados(
+    limit: int = 20,
+    offset: int = 0,
+    uf: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    filtro = "WHERE uf = %s" if uf else ""
+    params: list = ([uf] if uf else []) + [limit, offset]
+    with conectar() as conn, conn.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT numero_processo, uf, sub_assunto,
+                   resultado_macro, resultado_micro,
+                   valor_causa, valor_condenacao
+            FROM processos
+            {filtro}
+            ORDER BY numero_processo
+            LIMIT %s OFFSET %s
+            """,
+            params,
+        )
+        rows = cur.fetchall()
+    return [
+        {
+            "processo_id": r[0],
+            "uf": r[1],
+            "sub_assunto": r[2],
+            "resultado_macro": r[3],
+            "resultado_micro": r[4],
+            "valor_causa": float(r[5]),
+            "valor_condenacao": float(r[6]),
+        }
+        for r in rows
+    ]
 
 
 @app.post("/api/analise/{processo_id:path}/decisao-escritorio")
