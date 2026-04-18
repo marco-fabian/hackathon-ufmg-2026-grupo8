@@ -185,3 +185,50 @@ def obter_caso(slug: str) -> dict[str, Any]:
     if not path.exists():
         raise HTTPException(status_code=404, detail=f"Caso '{slug}' nao encontrado")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+_POLICY_FALLBACK_ORDER = ["Balanceada", "Moderada", "Conservadora", "Arriscada", "Agressiva", "Maxima"]
+
+
+@app.get("/api/processos-finalizados")
+def listar_processos_finalizados(
+    limit: int = 20,
+    offset: int = 0,
+    uf: Optional[str] = None,
+) -> list[dict[str, Any]]:
+    from psycopg.rows import dict_row
+    from src.backend.db.connection import conectar
+
+    filtro = "WHERE uf = %s" if uf else ""
+    params: list = [limit, offset]
+    if uf:
+        params = [uf, limit, offset]
+
+    with conectar() as conn:
+        with conn.cursor(row_factory=dict_row) as cur:
+            cur.execute(
+                f"""
+                SELECT numero_processo, uf, sub_assunto,
+                       resultado_macro, resultado_micro,
+                       valor_causa, valor_condenacao
+                FROM processos
+                {filtro}
+                ORDER BY numero_processo
+                LIMIT %s OFFSET %s
+                """,
+                params,
+            )
+            rows = cur.fetchall()
+
+    return [
+        {
+            "processo_id": r["numero_processo"],
+            "uf": r["uf"],
+            "sub_assunto": r["sub_assunto"],
+            "resultado_macro": r["resultado_macro"],
+            "resultado_micro": r["resultado_micro"],
+            "valor_causa": float(r["valor_causa"]),
+            "valor_condenacao": float(r["valor_condenacao"]),
+        }
+        for r in rows
+    ]
