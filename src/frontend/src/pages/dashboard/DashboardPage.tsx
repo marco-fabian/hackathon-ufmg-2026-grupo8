@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Clock, Activity, UserCheck, Zap } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { DataTableBase, type ColumnDef, type SortDirection } from '@/components/data/DataTableBase'
 import { ChartCardBase } from '@/components/data/ChartCardBase'
 import { useView } from '@/context/ViewContext'
 import { mockProcessos } from '@/data/mockData'
@@ -165,31 +164,12 @@ function KpiCard({ label, value, icon, subtitle, accent = COLOR_ORANGE, sparklin
   )
 }
 
-// ─── Table Columns ─────────────────────────────────────────────────────────────
-
-const COLUMNS: ColumnDef<Record<string, unknown>>[] = [
-  { key: 'numeroCaso', header: 'Nº Processo', sortable: true, width: '220px' },
-  { key: 'uf', header: 'UF', width: '100px', filterType: 'select' },
-  { key: 'resultadoMicro', header: 'Resultado (Base)', sortable: true, filterType: 'select' },
-  {
-    key: 'valorCausa',
-    header: 'Valor Causa',
-    align: 'right',
-    render: (val) =>
-      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val)),
-  },
-]
-
-
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { userRole } = useView()
-  const [sortColumn, setSortColumn]       = useState<string | undefined>(undefined)
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const [selectedChart, setSelectedChart] = useState<'subassunto' | 'documentos' | 'valores' | 'estados' | 'processos' | 'ticket'>('subassunto')
   const [baseProcessos, setBaseProcessos] = useState<ProcessoBase[]>([])
-  const [loadingBase, setLoadingBase]     = useState(true)
 
   useEffect(() => {
     fetch('/processos.json')
@@ -200,7 +180,6 @@ export default function DashboardPage() {
           decisaoAdvogado: p.resultadoMacro === 'Não Êxito' ? 'Acordo' : 'Defesa',
         })))
       })
-      .finally(() => setLoadingBase(false))
   }, [])
 
   const ADVOGADO_LOGADO = 'Dr. Rafael Silva'
@@ -405,23 +384,6 @@ export default function DashboardPage() {
               formatValue={formatCurrencyCompact}
             />
           )}
-        </section>
-
-        {/* ─── DATATABLE ─── */}
-        <section>
-          <DataTableBase
-            columns={COLUMNS}
-            data={baseProcessos as unknown as Record<string, unknown>[]}
-            isLoading={loadingBase}
-            caption="Base de Processos (60.000 registros)"
-            sortColumn={sortColumn}
-            sortDirection={sortDirection}
-            onSort={(col, dir) => {
-              setSortColumn(col)
-              setSortDirection(dir)
-            }}
-            pageSize={50}
-          />
         </section>
 
       </div>

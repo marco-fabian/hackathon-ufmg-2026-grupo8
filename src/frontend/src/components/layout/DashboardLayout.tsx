@@ -20,6 +20,12 @@ interface NavItem {
   badge?: number
 }
 
+const NAV_ITEMS: NavItem[] = [
+  { icon: <LayoutDashboard size={18} />, label: 'Dashboard',    href: '/' },
+  { icon: <Scale            size={18} />, label: 'Processos Finalizados', href: '/processos' },
+  { icon: <BrainCircuit     size={18} />, label: 'Casos em aberto',  href: '/analise' },
+]
+
 // ─── Role Switcher ─────────────────────────────────────────────────────────────
 function RoleSwitcher() {
   const { userRole, toggleRole } = useView()

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { FileText, BrainCircuit, CheckCircle2, DollarSign, Scale, MessageSquare, UploadCloud, Clock, FileUp, Check, Download, X } from 'lucide-react'
+import { FileText, BrainCircuit, CheckCircle2, DollarSign, Scale, MessageSquare, UploadCloud, Clock, FileUp, Check, Download, X, ArrowLeft, Folder } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useView } from '@/context/ViewContext'
 import { mockProcessos } from '@/data/mockData'
@@ -26,6 +26,52 @@ interface AnaliseState {
   explicacao: string
 }
 
+// ─── Mock de Casos ────────────────────────────────────────────────────────────
+
+interface CasoMock {
+  id: string
+  nome: string
+  status: 'Analisado' | 'Não analisado'
+  dadosPreenchidos: AnaliseState | null
+}
+
+const CASOS_MOCK: CasoMock[] = [
+  {
+    id: 'caso_01',
+    nome: 'Caso 01',
+    status: 'Analisado',
+    dadosPreenchidos: {
+      numeroCaso: '1764352-89.2025.8.06.1818',
+      decisao: 'ACORDO',
+      probabilidadePerda: 0.78,
+      valorAcordoSugerido: 12500,
+      sugestoes: [
+        { valor: 12500, probabilidadeSucesso: 70 },
+        { valor: 9000,  probabilidadeSucesso: 90 },
+        { valor: 16000, probabilidadeSucesso: 40 },
+      ],
+      explicacao: 'Alta probabilidade de perda — histórico de casos similares no CE e ausência de contrato assinado.',
+    },
+  },
+  {
+    id: 'caso_02',
+    nome: 'Caso 02',
+    status: 'Não analisado',
+    dadosPreenchidos: null,
+  },
+]
+
+const BLANK_ANALISE: AnaliseState = {
+  numeroCaso: '—',
+  decisao: 'DEFESA',
+  probabilidadePerda: 0,
+  valorAcordoSugerido: null,
+  sugestoes: [],
+  explicacao: '',
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function decisaoParaAnalise(d: {
   decisao: 'ACORDO' | 'DEFESA'
   probabilidade_perda: number
@@ -49,11 +95,17 @@ function decisaoParaAnalise(d: {
   }
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export default function ProcessAnalysisPage() {
   const [decision, setDecision] = useState<'acordo' | 'defesa' | null>(null)
   const { userRole } = useView()
   const [searchParams] = useSearchParams()
 
+  // ── Master-Detail state ──
+  const [selectedCase, setSelectedCase] = useState<CasoMock | null>(null)
+
+  // ── Detail state ──
   const processoMock = mockProcessos[0]!
   const mockSugestoes = processoMock.sugestoesValor || []
   const mockValorIdeal = mockSugestoes.length > 0 ? mockSugestoes[0].valor : 85000
@@ -84,12 +136,24 @@ export default function ProcessAnalysisPage() {
     setModalSelection(novoValor)
   }, [])
 
+  // Quando um caso é selecionado, preenche o detalhe com os dados do mock
+  useEffect(() => {
+    if (!selectedCase) return
+    setShap(null)
+    setDecision(null)
+    if (selectedCase.dadosPreenchidos) {
+      aplicarResultado(selectedCase.dadosPreenchidos)
+    } else {
+      aplicarResultado(BLANK_ANALISE)
+    }
+  }, [selectedCase, aplicarResultado])
+
   // Busca métricas do modelo uma vez
   useEffect(() => {
     obterMetricas().then(setMetricas).catch(() => {})
   }, [])
 
-  // Carrega o caso inicial pelo slug
+  // Carrega o caso inicial pelo slug (via URL ?id=)
   useEffect(() => {
     const id = searchParams.get('id')
     if (!id || !id.startsWith('caso_')) return
@@ -97,7 +161,6 @@ export default function ProcessAnalysisPage() {
       const p = pip.payload as PayloadProcesso
       setPayload(p)
       aplicarResultado(decisaoParaAnalise(pip.decisao, pip.processo_id))
-      // SHAP na carga inicial
       decidir({
         uf: p.uf,
         sub_assunto: p.sub_assunto,
@@ -129,10 +192,85 @@ export default function ProcessAnalysisPage() {
   const sugestoes = analise.sugestoes
   const valorIdeal = analise.valorAcordoSugerido ?? 0
 
+  // ── MASTER VIEW ──────────────────────────────────────────────────────────────
+  if (selectedCase === null) {
+    return (
+      <DashboardLayout pageTitle="Casos em Aberto">
+        <div className="flex flex-col gap-6">
+          <p className="text-sm text-slate-500">Selecione um caso para ver ou iniciar a análise.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {CASOS_MOCK.map(caso => {
+              const analisado = caso.status === 'Analisado'
+              return (
+                <div
+                  key={caso.id}
+                  className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden hover:shadow-md transition-shadow"
+                >
+                  {/* Card header */}
+                  <div className="p-5 flex-1 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-blue-50 rounded-xl">
+                          <Folder size={20} className="text-blue-600" />
+                        </div>
+                        <h3 className="font-semibold text-slate-800 text-base">{caso.nome}</h3>
+                      </div>
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shrink-0 ${
+                          analisado
+                            ? 'text-green-700 bg-green-50 border-green-200'
+                            : 'text-slate-500 bg-slate-100 border-slate-200'
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                        {caso.status}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      {analisado
+                        ? 'Análise concluída pelo motor de IA. Clique para visualizar o resultado.'
+                        : 'Aguardando análise. Clique para iniciar o processamento do caso.'}
+                    </p>
+                  </div>
+
+                  {/* Card footer */}
+                  <div className="px-5 pb-5">
+                    <button
+                      onClick={() => setSelectedCase(caso)}
+                      className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                        analisado
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                          : 'bg-slate-800 hover:bg-slate-900 text-white shadow-sm'
+                      }`}
+                    >
+                      {analisado ? 'Ver análise' : 'Analisar'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // ── DETAIL VIEW ───────────────────────────────────────────────────────────────
   return (
-    <DashboardLayout pageTitle={`Análise de Processo · Autos nº ${analise.numeroCaso}`}>
+    <DashboardLayout pageTitle={`Análise de Processo · ${selectedCase.nome}`}>
       <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto pb-6">
-        
+
+        {/* Voltar */}
+        <button
+          onClick={() => setSelectedCase(null)}
+          className="self-start inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 bg-white border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg shadow-sm transition-all"
+        >
+          <ArrowLeft size={15} />
+          Voltar para a lista
+        </button>
+
         {/* SEÇÃO SUPERIOR: Recomendação da IA (Largura Total) */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col shrink-0">
           <div className="bg-blue-50 border-b border-blue-100 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
@@ -142,7 +280,7 @@ export default function ProcessAnalysisPage() {
               </div>
               <div>
                 <h2 className="font-semibold text-blue-900 leading-tight">Inteligência Artificial Banco UFMG</h2>
-                <p className="text-xs text-blue-700 font-medium">Recomendação Estratégica e Veredito</p>
+                <p className="text-xs text-blue-700 font-medium">Recomendação Estratégica e Veredito · {analise.numeroCaso}</p>
               </div>
             </div>
             {payload && (
@@ -168,7 +306,9 @@ export default function ProcessAnalysisPage() {
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Resumo do Caso</p>
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-700 leading-relaxed shadow-sm">
-                A parte autora alega não reconhecer a contratação do empréstimo consignado, contestando os descontos realizados em sua conta bancária. Requer indenização por danos materiais e morais.
+                {selectedCase.dadosPreenchidos
+                  ? 'A parte autora alega não reconhecer a contratação do empréstimo consignado, contestando os descontos realizados em sua conta bancária. Requer indenização por danos materiais e morais.'
+                  : <span className="text-slate-400 italic">Resumo não disponível — caso ainda não analisado.</span>}
               </div>
             </div>
 
@@ -181,11 +321,14 @@ export default function ProcessAnalysisPage() {
                   <CheckCircle2 className={`mt-0.5 shrink-0 ${analise.decisao === 'ACORDO' ? 'text-green-600' : 'text-slate-500'}`} size={20} />
                   <div>
                     <span className={`font-bold text-lg ${analise.decisao === 'ACORDO' ? 'text-green-800' : 'text-slate-800'}`}>
-                      {analise.decisao === 'ACORDO' ? 'Propor Acordo' : 'Manter Defesa'}
+                      {selectedCase.dadosPreenchidos
+                        ? (analise.decisao === 'ACORDO' ? 'Propor Acordo' : 'Manter Defesa')
+                        : '—'}
                     </span>
                     <p className={`text-sm mt-1 leading-relaxed ${analise.decisao === 'ACORDO' ? 'text-green-700' : 'text-slate-600'}`}>
-                      Probabilidade de perda prevista: {(analise.probabilidadePerda * 100).toFixed(0)}%
-                      {analise.explicacao ? ` — ${analise.explicacao}` : ''}
+                      {selectedCase.dadosPreenchidos
+                        ? `Probabilidade de perda prevista: ${(analise.probabilidadePerda * 100).toFixed(0)}%${analise.explicacao ? ` — ${analise.explicacao}` : ''}`
+                        : 'Aguardando análise do motor de IA.'}
                     </p>
                   </div>
                 </div>
@@ -200,10 +343,12 @@ export default function ProcessAnalysisPage() {
                       <p className="text-sm text-blue-600 font-medium flex items-center gap-1">
                         <DollarSign size={16}/> Valor selecionado para o acordo
                       </p>
-                      <p className="font-bold text-blue-800 text-2xl">{valorSelecionado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                      {selectedCase.dadosPreenchidos
+                        ? <p className="font-bold text-blue-800 text-2xl">{valorSelecionado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p>
+                        : <p className="text-slate-400 italic text-sm">Não disponível</p>}
                     </div>
                     {sugestoes.length > 0 && (
-                      <button 
+                      <button
                         onClick={() => {
                           setModalSelection(valorSelecionado)
                           setIsModalOpen(true)
@@ -223,23 +368,23 @@ export default function ProcessAnalysisPage() {
                   <>
                     <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Decisão Final do Escritório</p>
                     <div className="grid grid-cols-2 gap-3 flex-1">
-                      <button 
+                      <button
                         onClick={() => setDecision('acordo')}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all h-full ${
-                          decision === 'acordo' 
-                            ? 'border-green-600 bg-green-50 text-green-700 shadow-sm' 
+                          decision === 'acordo'
+                            ? 'border-green-600 bg-green-50 text-green-700 shadow-sm'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-green-300 hover:bg-green-50'
                         }`}
                       >
                         <MessageSquare size={20} className="mb-1" />
                         <span className="font-semibold text-sm">Aceitar (Acordo)</span>
                       </button>
-                      
-                      <button 
+
+                      <button
                         onClick={() => setDecision('defesa')}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all h-full ${
-                          decision === 'defesa' 
-                            ? 'border-red-600 bg-red-50 text-red-700 shadow-sm' 
+                          decision === 'defesa'
+                            ? 'border-red-600 bg-red-50 text-red-700 shadow-sm'
                             : 'border-slate-200 bg-white text-slate-600 hover:border-red-300 hover:bg-red-50'
                         }`}
                       >
@@ -264,7 +409,6 @@ export default function ProcessAnalysisPage() {
             {/* Fatores Determinantes (SHAP) + Confiabilidade do Modelo */}
             {(shap?.disponivel || metricas) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* SHAP */}
                 {shap?.disponivel && shap.top_features_p_l && (
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Fatores Determinantes (P. Perda)</p>
@@ -292,7 +436,6 @@ export default function ProcessAnalysisPage() {
                   </div>
                 )}
 
-                {/* Métricas do Modelo */}
                 {metricas && (
                   <div>
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Confiabilidade do Modelo</p>
@@ -324,7 +467,6 @@ export default function ProcessAnalysisPage() {
         {/* SEÇÃO INFERIOR: Arquivos e Gestão */}
         {userRole === 'banco' ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[400px]">
-            {/* COLUNA ESQUERDA: Lista de Arquivos (Banco) */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
               <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 flex items-center gap-2">
                 <FileText className="text-slate-500" size={18} />
@@ -332,58 +474,30 @@ export default function ProcessAnalysisPage() {
               </div>
               <div className="p-5 flex-1 overflow-y-auto">
                 <div className="space-y-3">
-                  {/* File Item */}
-                  <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-red-50 text-red-600 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
-                        <FileText size={20} />
+                  {[
+                    { name: 'Contrato_Financiamento_Assinado.pdf', info: 'Banco UFMG • 1.2 MB' },
+                    { name: 'Extrato_Movimentacao_2023.pdf',        info: 'Banco UFMG • 850 KB' },
+                    { name: 'Peticao_Inicial_Autos.pdf',            info: 'Documento do Tribunal • 2.1 MB' },
+                  ].map(file => (
+                    <div key={file.name} className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group">
+                      <div className="flex items-center gap-4">
+                        <div className="bg-red-50 text-red-600 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                          <FileText size={20} />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm text-slate-800 group-hover:text-blue-700 transition-colors">{file.name}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{file.info}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-sm text-slate-800 group-hover:text-blue-700 transition-colors">Contrato_Financiamento_Assinado.pdf</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Banco UFMG • 1.2 MB</p>
-                      </div>
+                      <button className="text-slate-400 group-hover:text-blue-600 p-2 rounded-md transition-colors" title="Baixar documento">
+                        <Download size={18} />
+                      </button>
                     </div>
-                    <button className="text-slate-400 group-hover:text-blue-600 p-2 rounded-md transition-colors" title="Baixar documento">
-                      <Download size={18} />
-                    </button>
-                  </div>
-                  
-                  {/* File Item */}
-                  <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-red-50 text-red-600 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
-                        <FileText size={20} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-slate-800 group-hover:text-blue-700 transition-colors">Extrato_Movimentacao_2023.pdf</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Banco UFMG • 850 KB</p>
-                      </div>
-                    </div>
-                    <button className="text-slate-400 group-hover:text-blue-600 p-2 rounded-md transition-colors" title="Baixar documento">
-                      <Download size={18} />
-                    </button>
-                  </div>
-
-                  {/* File Item */}
-                  <div className="flex items-center justify-between p-3 border border-slate-200 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all cursor-pointer group">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-red-50 text-red-600 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
-                        <FileText size={20} />
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm text-slate-800 group-hover:text-blue-700 transition-colors">Peticao_Inicial_Autos.pdf</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Documento do Tribunal • 2.1 MB</p>
-                      </div>
-                    </div>
-                    <button className="text-slate-400 group-hover:text-blue-600 p-2 rounded-md transition-colors" title="Baixar documento">
-                      <Download size={18} />
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* COLUNA DIREITA: Ação por Perfil (Banco) */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
               <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 flex items-center gap-2">
                 <UploadCloud className="text-slate-500" size={18} />
@@ -410,68 +524,34 @@ export default function ProcessAnalysisPage() {
           </div>
         ) : (
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 min-h-[400px]">
-            {/* VISÃO ADVOGADO: Coluna Única com Grid de Cards */}
             <div className="bg-slate-50 border-b border-slate-200 px-5 py-4 flex items-center gap-2">
               <FileText className="text-slate-500" size={18} />
               <h3 className="font-semibold text-slate-800">Subsídios e Autos Disponíveis</h3>
             </div>
             <div className="p-6 flex-1 overflow-y-auto bg-slate-50/50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                {/* File Card 1 */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="flex items-start gap-4 mb-5 relative z-10">
-                    <div className="bg-red-50 text-red-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
-                      <FileText size={24} />
+                {[
+                  { name: 'Contrato_Financiamento_Assinado.pdf', info: 'Banco UFMG • 1.2 MB' },
+                  { name: 'Extrato_Movimentacao_2023.pdf',        info: 'Banco UFMG • 850 KB' },
+                  { name: 'Peticao_Inicial_Autos.pdf',            info: 'Documento do Tribunal • 2.1 MB' },
+                ].map(file => (
+                  <div key={file.name} className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="flex items-start gap-4 mb-5 relative z-10">
+                      <div className="bg-red-50 text-red-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
+                        <FileText size={24} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2">{file.name}</p>
+                        <p className="text-xs text-slate-500 mt-1">{file.info}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2">Contrato_Financiamento_Assinado.pdf</p>
-                      <p className="text-xs text-slate-500 mt-1">Banco UFMG • 1.2 MB</p>
-                    </div>
+                    <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all relative z-10">
+                      <Download size={16} />
+                      Visualizar Documento
+                    </button>
                   </div>
-                  <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all relative z-10">
-                    <Download size={16} />
-                    Visualizar Documento
-                  </button>
-                </div>
-
-                {/* File Card 2 */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="flex items-start gap-4 mb-5 relative z-10">
-                    <div className="bg-red-50 text-red-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
-                      <FileText size={24} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2">Extrato_Movimentacao_2023.pdf</p>
-                      <p className="text-xs text-slate-500 mt-1">Banco UFMG • 850 KB</p>
-                    </div>
-                  </div>
-                  <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all relative z-10">
-                    <Download size={16} />
-                    Visualizar Documento
-                  </button>
-                </div>
-
-                {/* File Card 3 */}
-                <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-blue-300 hover:shadow-md transition-all group flex flex-col justify-between h-full relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <div className="flex items-start gap-4 mb-5 relative z-10">
-                    <div className="bg-red-50 text-red-600 p-3 rounded-xl group-hover:scale-110 transition-transform">
-                      <FileText size={24} />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm text-slate-800 group-hover:text-blue-700 transition-colors line-clamp-2">Peticao_Inicial_Autos.pdf</p>
-                      <p className="text-xs text-slate-500 mt-1">Documento do Tribunal • 2.1 MB</p>
-                    </div>
-                  </div>
-                  <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-slate-200 text-slate-600 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all relative z-10">
-                    <Download size={16} />
-                    Visualizar Documento
-                  </button>
-                </div>
-
+                ))}
               </div>
             </div>
           </div>
@@ -487,17 +567,16 @@ export default function ProcessAnalysisPage() {
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="p-6 flex flex-col gap-4 overflow-y-auto">
                 <p className="text-sm text-slate-500 mb-2">A inteligência artificial gerou múltiplos cenários para acordo neste caso. Selecione a opção mais adequada à estratégia.</p>
-                
+
                 <div className="space-y-3">
                   {sugestoes.map((sugestao, idx) => {
-                    const isRecommended = idx === 0;
-                    const isSelected = modalSelection === sugestao.valor;
-                    
+                    const isRecommended = idx === 0
+                    const isSelected = modalSelection === sugestao.valor
                     return (
-                      <label 
+                      <label
                         key={idx}
                         className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-all ${
                           isSelected ? 'border-blue-500 bg-blue-50/50' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'
@@ -505,9 +584,9 @@ export default function ProcessAnalysisPage() {
                         onClick={() => setModalSelection(sugestao.valor)}
                       >
                         <div className="flex items-center gap-3">
-                          <input 
-                            type="radio" 
-                            name="suggestedValue" 
+                          <input
+                            type="radio"
+                            name="suggestedValue"
                             checked={isSelected}
                             readOnly
                             className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
@@ -523,7 +602,7 @@ export default function ProcessAnalysisPage() {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex flex-col items-end">
                           <div className={`text-sm font-bold ${sugestao.probabilidadeSucesso >= 70 ? 'text-green-600' : sugestao.probabilidadeSucesso >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
                             {sugestao.probabilidadeSucesso}%
@@ -537,13 +616,13 @@ export default function ProcessAnalysisPage() {
               </div>
 
               <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
-                <button 
+                <button
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 rounded-lg font-medium text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     setValorSelecionado(modalSelection)
                     setIsModalOpen(false)
