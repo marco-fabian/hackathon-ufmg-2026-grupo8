@@ -5,7 +5,7 @@
 import axios from 'axios'
 
 // Install axios first: npm install axios
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 export const api = axios.create({
   baseURL: BASE_URL,
@@ -25,14 +25,3 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// ─── Response interceptor: handle global errors ───────────────────────────
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('enteros_token')
-      window.location.href = '/login'
-    }
-    return Promise.reject(error)
-  },
-)

@@ -1,11 +1,21 @@
+import { useState, useEffect } from 'react'
 import { Scale, Clock, BrainCircuit } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { mockProcessos, mockStats } from '@/data/mockData'
+import { mockProcessos, mockStats, type Processo } from '@/data/mockData'
 import { useView } from '@/context/ViewContext'
 import { Link } from 'react-router-dom'
+import { listarCasos } from '@/services/casosService'
+import { casoToProcesso } from '@/utils/backendToProcesso'
 
 export default function FilaPage() {
   const { userRole } = useView()
+  const [processos, setProcessos] = useState<Processo[]>(mockProcessos)
+
+  useEffect(() => {
+    listarCasos()
+      .then(casos => setProcessos([...casos.map(casoToProcesso), ...mockProcessos]))
+      .catch(() => { /* fica no mock */ })
+  }, [])
 
   const statusColor: Record<string, string> = {
     concluido: 'text-green-600 bg-green-50 border-green-200',
@@ -58,7 +68,7 @@ export default function FilaPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {mockProcessos.map((proc) => (
+                {processos.map((proc) => (
                   <tr key={proc.numeroCaso} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs text-slate-700">{proc.numeroCaso}</td>
                     <td className="px-4 py-3 text-slate-600">{proc.uf}</td>
@@ -88,7 +98,7 @@ export default function FilaPage() {
                     )}
                     <td className="px-4 py-3 text-center">
                       <Link
-                        to="/analise"
+                        to={`/analise?id=${proc.numeroCaso}`}
                         className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
                       >
                         Analisar →
