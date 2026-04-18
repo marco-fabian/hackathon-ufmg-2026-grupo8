@@ -1,7 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(conda run *)"
+      "Bash(conda run *)",
+      "Bash(cmd.exe /c \"conda run -n ENTER python -c \\\\\"import pandas as pd; df = pd.read_csv\\('data/banco_treino.csv'\\); print\\(df.shape\\); print\\(df.dtypes\\)\\\\\"\")",
+      "Bash(cmd.exe /c \"where python\")",
+      "Bash(cmd.exe /c \"C:\\\\\\\\Users\\\\\\\\Guilh\\\\\\\\anaconda3\\\\\\\\Scripts\\\\\\\\conda.exe run -n ENTER python -c \\\\\"import pandas as pd; df=pd.read_csv\\('data/banco_treino.csv'\\); print\\('SUB'\\); print\\(df.groupby\\('Sub-assunto'\\)['perde'].agg\\(['mean','sum','count']\\).round\\(3\\)\\); print\\('DOCS'\\); docs=['tem_contrato','tem_extrato','tem_comprovante','tem_dossie','tem_demonstrativo','tem_laudo']; [print\\(d, round\\(\\(1-df[df[d]==1]['perde'].mean\\(\\)\\)*100,1\\), round\\(\\(1-df[df[d]==0]['perde'].mean\\(\\)\\)*100,1\\)\\) for d in docs]; print\\('UF'\\); uf=df.groupby\\('UF'\\)['perde'].mean\\(\\).sort_values\\(ascending=False\\).head\\(10\\).round\\(3\\); print\\(uf\\); print\\('SCATTER'\\); s=df[df['perde']==1][['Valor da causa','Valor da condenacao/indenizacao']].head\\(30\\); print\\(s\\)\\\\\"\")",
+      "Bash(cmd.exe /c \"C:\\\\\\\\Users\\\\\\\\Guilh\\\\\\\\anaconda3\\\\\\\\envs\\\\\\\\ENTER\\\\\\\\python.exe -c \\\\\"import pandas as pd; df=pd.read_csv\\('data/banco_treino.csv'\\); print\\(df.groupby\\('Sub-assunto'\\)['perde'].mean\\(\\)\\)\\\\\"\")",
+      "Read(//c/Users/Guilh/anaconda3/envs/**)",
+      "Read(//c/Users/Guilh/miniconda3/envs/**)",
+      "Bash(cmd.exe /c \"dir C:\\\\\\\\Users\\\\\\\\Guilh\\\\\\\\anaconda3\\\\\\\\envs\\\\\\\\ENTER\\\\\\\\python.exe 2>&1\")",
+      "Bash(python -c ' *)",
+      "Bash(python scripts/export_processos_json.py)"
     ]
   }
 }
