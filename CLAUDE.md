@@ -139,11 +139,14 @@ pip install -r src/backend/requirements-backend.txt
 ```
 
 ### Banco de dados Postgres (opcional, para queries analiticas)
-Container Postgres 16 com a base de 60k processos ja populada.
+Container Postgres 16 com duas tabelas: `processos` (60k linhas do xlsx) e `decisoes_processo` (output do pipeline).
 ```bash
-docker compose up -d db                             # sobe o container (schema aplicado automaticamente)
-conda run -n ENTER python scripts/seed_db.py        # popula a tabela `processos` (idempotente)
+docker compose up -d db                                      # sobe o container (schema aplicado automaticamente)
+conda run -n ENTER python scripts/seed_db.py                 # popula `processos` com os 60k do xlsx (idempotente)
+conda run -n ENTER python scripts/seed_decisoes.py           # popula `decisoes_processo` com os JSONs de scripts/output/ (idempotente)
+conda run -n ENTER python scripts/seed_decisoes.py scripts/output/Caso_01.json  # seed de um caso especifico
 docker compose exec db psql -U enter -d enter -c "SELECT COUNT(*) FROM processos;"
+docker compose exec db psql -U enter -d enter -c "SELECT processo_id, ifp_tier, politicas->'Moderada'->>'decisao' FROM decisoes_processo;"
 ```
 Conexao: `DATABASE_URL=postgresql://enter:enter@localhost:5432/enter` (ver `.env.example`). Schema em `src/backend/db/schema.sql`.
 
