@@ -127,6 +127,9 @@ export default function ProcessAnalysisPage() {
   const [metricas, setMetricas] = useState<Metricas | null>(null)
   const [jurisprudencias, setJurisprudencias] = useState<JurisprudenciaRef[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isAnalyzeModalOpen, setIsAnalyzeModalOpen] = useState(false)
+  const [pendingCase, setPendingCase] = useState<CasoMock | null>(null)
+  const [actionModalState, setActionModalState] = useState<'none' | 'accept' | 'reject'>('none')
   const [valorSelecionado, setValorSelecionado] = useState<number>(mockValorIdeal)
   const [modalSelection, setModalSelection] = useState<number>(mockValorIdeal)
 
@@ -260,7 +263,14 @@ export default function ProcessAnalysisPage() {
                   {/* Card footer */}
                   <div className="px-5 pb-5">
                     <button
-                      onClick={() => setSelectedCase(caso)}
+                      onClick={() => {
+                        if (analisado) {
+                          setSelectedCase(caso)
+                        } else {
+                          setPendingCase(caso)
+                          setIsAnalyzeModalOpen(true)
+                        }
+                      }}
                       className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all ${
                         analisado
                           ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
@@ -275,6 +285,43 @@ export default function ProcessAnalysisPage() {
             })}
           </div>
         </div>
+
+        {/* Modal: Confirmar Análise */}
+        {isAnalyzeModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-lg">Iniciar Análise</h3>
+                <button onClick={() => setIsAnalyzeModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="px-6 py-5">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Deseja iniciar o processamento do <span className="font-semibold text-slate-800">{pendingCase?.nome}</span> pelo motor de IA?
+                </p>
+              </div>
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setIsAnalyzeModalOpen(false)}
+                  className="px-4 py-2 rounded-lg font-medium text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    setIsAnalyzeModalOpen(false)
+                    setSelectedCase(pendingCase)
+                    setPendingCase(null)
+                  }}
+                  className="px-5 py-2 rounded-lg font-medium text-sm text-white bg-slate-800 hover:bg-slate-900 shadow-sm transition-colors"
+                >
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </DashboardLayout>
     )
   }
@@ -324,16 +371,6 @@ export default function ProcessAnalysisPage() {
           </div>
 
           <div className="p-8 flex flex-col gap-8">
-            {/* Resumo do Caso */}
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Resumo do Caso</p>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-700 leading-relaxed shadow-sm">
-                {selectedCase.dadosPreenchidos
-                  ? 'A parte autora alega não reconhecer a contratação do empréstimo consignado, contestando os descontos realizados em sua conta bancária. Requer indenização por danos materiais e morais.'
-                  : <span className="text-slate-400 italic">Resumo não disponível — caso ainda não analisado.</span>}
-              </div>
-            </div>
-
             {/* Grid 3 colunas para Veredito, Valores e Ações */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
               {/* Veredito */}
@@ -391,7 +428,7 @@ export default function ProcessAnalysisPage() {
                     <p className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2">Decisão Final do Escritório</p>
                     <div className="grid grid-cols-2 gap-3 flex-1">
                       <button
-                        onClick={() => setDecision('acordo')}
+                        onClick={() => setActionModalState('accept')}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all h-full ${
                           decision === 'acordo'
                             ? 'border-green-600 bg-green-50 text-green-700 shadow-sm'
@@ -403,7 +440,7 @@ export default function ProcessAnalysisPage() {
                       </button>
 
                       <button
-                        onClick={() => setDecision('defesa')}
+                        onClick={() => setActionModalState('reject')}
                         className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all h-full ${
                           decision === 'defesa'
                             ? 'border-red-600 bg-red-50 text-red-700 shadow-sm'
@@ -603,6 +640,84 @@ export default function ProcessAnalysisPage() {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Confirmar Acordo */}
+        {actionModalState === 'accept' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-lg">Confirmar Acordo</h3>
+                <button onClick={() => setActionModalState('none')} className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="px-6 py-5">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Você está prestes a aceitar a recomendação de acordo no valor de{' '}
+                  <span className="font-semibold text-green-700">
+                    {valorSelecionado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                  </span>
+                  . Deseja confirmar?
+                </p>
+              </div>
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setActionModalState('none')}
+                  className="px-4 py-2 rounded-lg font-medium text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={() => {
+                    setDecision('acordo')
+                    setActionModalState('none')
+                    console.log('Decisão confirmada: ACORDO —', valorSelecionado)
+                  }}
+                  className="px-5 py-2 rounded-lg font-medium text-sm text-white bg-green-600 hover:bg-green-700 shadow-sm transition-colors"
+                >
+                  Confirmar Decisão
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Confirmar Defesa */}
+        {actionModalState === 'reject' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="font-bold text-slate-800 text-lg">Confirmar Defesa</h3>
+                <button onClick={() => setActionModalState('none')} className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
+              <div className="px-6 py-5">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Você está optando por recusar o acordo e seguir com a <span className="font-semibold text-slate-800">defesa judicial</span>. Deseja confirmar?
+                </p>
+              </div>
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button
+                  onClick={() => setActionModalState('none')}
+                  className="px-4 py-2 rounded-lg font-medium text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={() => {
+                    setDecision('defesa')
+                    setActionModalState('none')
+                    console.log('Decisão confirmada: DEFESA')
+                  }}
+                  className="px-5 py-2 rounded-lg font-medium text-sm text-white bg-red-600 hover:bg-red-700 shadow-sm transition-colors"
+                >
+                  Confirmar Decisão
+                </button>
               </div>
             </div>
           </div>
