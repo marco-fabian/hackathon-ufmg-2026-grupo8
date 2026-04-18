@@ -17,7 +17,7 @@ from typing import Optional
 
 import numpy as np
 
-CORPUS_PATH = Path(__file__).resolve().parents[2] / "data" / "jurisprudencia.json"
+CORPUS_PATH = Path(__file__).resolve().parents[1] / "data" / "jurisprudencia.json"
 
 
 def _cosine(a: np.ndarray, b: np.ndarray) -> np.ndarray:

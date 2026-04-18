@@ -87,6 +87,16 @@ export interface CasoResumo {
   explicacao: string
 }
 
+export interface ProcessoFinalizado {
+  processo_id: string
+  uf: string
+  sub_assunto: string
+  resultado_macro: string
+  resultado_micro: string
+  valor_causa: number
+  valor_condenacao: number
+}
+
 export interface PipelineCaso {
   processo_id: string
   payload: {

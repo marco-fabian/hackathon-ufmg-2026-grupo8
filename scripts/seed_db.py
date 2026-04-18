@@ -13,6 +13,9 @@ from __future__ import annotations
 import io
 import sys
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.backend.db.connection import conectar
 from src.backend.modelo.features import carregar_base

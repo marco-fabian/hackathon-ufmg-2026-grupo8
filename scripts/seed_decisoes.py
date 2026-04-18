@@ -13,6 +13,8 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from src.backend.db.connection import conectar
 
 DIR_PADRAO = Path(__file__).resolve().parent / "output"
