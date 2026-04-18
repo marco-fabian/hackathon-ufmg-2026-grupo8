@@ -18,18 +18,17 @@ export default function FilaPage() {
   }, [])
 
   const statusColor: Record<string, string> = {
-    pendente: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-    em_analise: 'text-blue-600 bg-blue-50 border-blue-200',
     concluido: 'text-green-600 bg-green-50 border-green-200',
     aguardando_subsidios: 'text-orange-600 bg-orange-50 border-orange-200',
   }
 
   const statusLabel: Record<string, string> = {
-    pendente: 'Pendente',
-    em_analise: 'Em Análise',
     concluido: 'Concluído',
     aguardando_subsidios: 'Aguardando Subsídios',
   }
+
+  const normalizeStatus = (s: string) =>
+    s === 'concluido' ? 'concluido' : 'aguardando_subsidios'
 
   return (
     <DashboardLayout pageTitle="Fila de Processos">
@@ -60,7 +59,8 @@ export default function FilaPage() {
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">UF</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Sub-assunto</th>
                   <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Valor Causa</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Status IA</th>
+                  <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Sugestão</th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Status</th>
                   {userRole === 'banco' && (
                     <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Risco IA</th>
                   )}
@@ -76,10 +76,17 @@ export default function FilaPage() {
                     <td className="px-4 py-3 text-right font-semibold text-slate-800">
                       {proc.valorCausa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
+                    <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                      {proc.valorAcordoSugerido != null
+                        ? proc.valorAcordoSugerido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                        : <span className="text-slate-400 font-normal text-xs">—</span>}
+                    </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusColor[proc.statusDaIA]}`}>
-                        {statusLabel[proc.statusDaIA]}
-                      </span>
+                      {(() => { const s = normalizeStatus(proc.statusDaIA); return (
+                        <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusColor[s]}`}>
+                          {statusLabel[s]}
+                        </span>
+                      )})()}
                     </td>
                     {userRole === 'banco' && (
                       <td className="px-4 py-3 text-right">

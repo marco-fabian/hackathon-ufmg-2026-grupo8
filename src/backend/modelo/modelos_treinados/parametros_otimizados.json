@@ -4,55 +4,24 @@
   "n_processos_backtest": 12000,
   "politicas": {
     "Conservadora": {
-      "taxa_alvo": 0.1,
-      "alpha": 0.80,
+      "taxa_alvo": 0.20,
+      "quantil_alpha": 0.75,
       "limiar": 7000.0,
-      "taxa_acordo_efetiva": 0.22741666666666666,
-      "economia_total": 15527525.384741426,
-      "economia_por_processo": 1293.960448728452,
-      "economia_pct": 0.27884469425587627,
-      "custo_total": 40157684.71465857
+      "descricao": "Aperta pouco, oferta mais alta pra fechar. Taxa historica de aceite estimada ~75%."
     },
     "Moderada": {
-      "taxa_alvo": 0.25,
-      "alpha": 0.65,
+      "taxa_alvo": 0.40,
+      "quantil_alpha": 0.50,
       "limiar": 4000.0,
-      "taxa_acordo_efetiva": 0.32825,
-      "economia_total": 19605148.255308643,
-      "economia_por_processo": 1633.7623546090535,
-      "economia_pct": 0.3520710116799916,
-      "custo_total": 36080061.844091356
+      "descricao": "Mediana condicional: oferta no meio da distribuicao historica de acordos. Taxa de aceite estimada ~50%."
     },
-    "Balanceada": {
-      "taxa_alvo": 0.35,
-      "alpha": 0.5,
-      "limiar": 3000.0,
-      "taxa_acordo_efetiva": 0.38483333333333336,
-      "economia_total": 21013536.32716991,
-      "economia_por_processo": 1751.128027264159,
-      "economia_pct": 0.37736297105928185,
-      "custo_total": 34671673.77223009
-    },
-    "Agressiva": {
-      "taxa_alvo": 0.6,
-      "alpha": 0.35,
+    "Arriscada": {
+      "taxa_alvo": 0.65,
+      "quantil_alpha": 0.30,
       "limiar": 2000.0,
-      "taxa_acordo_efetiva": 0.72525,
-      "economia_total": 25887159.020222634,
-      "economia_por_processo": 2157.2632516852195,
-      "economia_pct": 0.4648839247263892,
-      "custo_total": 29798051.079177365
-    },
-    "Maxima": {
-      "taxa_alvo": 1.0,
-      "alpha": 0.20,
-      "limiar": 500.0,
-      "taxa_acordo_efetiva": 1.0,
-      "economia_total": 28475084.969724063,
-      "economia_por_processo": 2372.9237474770052,
-      "economia_pct": 0.5113581311607708,
-      "custo_total": 27210125.129675936
+      "descricao": "Aperta mais, economisa mais. Taxa historica de aceite estimada ~30%."
     }
   },
-  "policy_default": "Balanceada"
+  "policy_default": "Moderada",
+  "alpha_source": "modelo_alpha_condicional (quantile regression em 280 acordos reais)"
 }

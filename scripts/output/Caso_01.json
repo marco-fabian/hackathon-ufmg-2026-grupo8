@@ -1,0 +1,134 @@
+{
+  "header": {
+    "processo_id": "Caso_01",
+    "uf": "MA",
+    "sub_assunto": "Genérico",
+    "valor_causa": 20000.0
+  },
+  "ifp": {
+    "score": 100,
+    "score_normalizado": 1.0,
+    "tier": "FORTE",
+    "componentes": {
+      "presenca": 60,
+      "qualidade": 40
+    },
+    "sinais_fortes": [
+      "extrato_autor_movimentou_dinheiro",
+      "demonstrativo_21_parcelas_pagas",
+      "dossie_assinatura_confere",
+      "laudo_evidencia_digital(gravacao_voz)"
+    ],
+    "sinais_ausentes": [],
+    "reasoning": "IFP v2 = 100 (FORTE). Todos os 6 subsídios presentes; qualidade 40/40."
+  },
+  "features_documentais": {
+    "tem_contrato": true,
+    "tem_extrato": true,
+    "tem_comprovante": true,
+    "tem_dossie": true,
+    "tem_demonstrativo": true,
+    "tem_laudo": true,
+    "ifp": 1.0,
+    "score_fraude": 0.15,
+    "laudo_favoravel": true,
+    "indicio_de_fraude": false
+  },
+  "analise_fraude": {
+    "score_fraude": 0.15,
+    "indicadores_fraude": [],
+    "sinais_protetivos": [
+      "extrato_autor_movimentou_dinheiro",
+      "demonstrativo_21_parcelas_pagas",
+      "dossie_assinatura_confere",
+      "laudo_evidencia_digital(gravacao_voz)"
+    ],
+    "justificativa": "O cenário apresenta diversos sinais de legitimidade, como a movimentação do dinheiro e o pagamento de parcelas. A assinatura foi confirmada e há evidências digitais, o que indica uma operação consistente e legítima."
+  },
+  "politicas": {
+    "Conservadora": {
+      "policy": "Conservadora",
+      "alpha": 1.0,
+      "alpha_quantil": 0.75,
+      "taxa_aceite_estimada": 0.75,
+      "alphas_por_quantil": {
+        "0.15": 0.889,
+        "0.3": 1.0,
+        "0.5": 1.0,
+        "0.75": 1.0,
+        "0.9": 1.0
+      },
+      "limiar": 7000.0,
+      "decisao": "DEFESA",
+      "override_aplicado": true,
+      "razao_override": "IFP_FORTE",
+      "probabilidade_perda": 0.0525,
+      "valor_condenacao_estimado": 7871.48,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 5775.49,
+        "q90": 13063.98
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 1821.72,
+      "valor_acordo_sugerido": null,
+      "economia_esperada_vs_defesa": null,
+      "explicacao": "Decisao: DEFESA. Probabilidade de perda prevista: 5.2%. Condenacao estimada (se perder): R$ 7,871.48 (faixa IC 80%: R$ 5,775.49 a R$ 13,063.98). Custo esperado da defesa: R$ 1,821.72. A decisao foi sobreposta pela forca probatoria dos subsidios (IFP = 1.00): documentacao agregada acima do limiar de 0.75. Recomenda-se DEFESA independente do modelo ML. Politica aplicada: Conservadora."
+    },
+    "Moderada": {
+      "policy": "Moderada",
+      "alpha": 1.0,
+      "alpha_quantil": 0.5,
+      "taxa_aceite_estimada": 0.5,
+      "alphas_por_quantil": {
+        "0.15": 0.889,
+        "0.3": 1.0,
+        "0.5": 1.0,
+        "0.75": 1.0,
+        "0.9": 1.0
+      },
+      "limiar": 4000.0,
+      "decisao": "DEFESA",
+      "override_aplicado": true,
+      "razao_override": "IFP_FORTE",
+      "probabilidade_perda": 0.0525,
+      "valor_condenacao_estimado": 7871.48,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 5775.49,
+        "q90": 13063.98
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 1821.72,
+      "valor_acordo_sugerido": null,
+      "economia_esperada_vs_defesa": null,
+      "explicacao": "Decisao: DEFESA. Probabilidade de perda prevista: 5.2%. Condenacao estimada (se perder): R$ 7,871.48 (faixa IC 80%: R$ 5,775.49 a R$ 13,063.98). Custo esperado da defesa: R$ 1,821.72. A decisao foi sobreposta pela forca probatoria dos subsidios (IFP = 1.00): documentacao agregada acima do limiar de 0.75. Recomenda-se DEFESA independente do modelo ML. Politica aplicada: Moderada."
+    },
+    "Arriscada": {
+      "policy": "Arriscada",
+      "alpha": 1.0,
+      "alpha_quantil": 0.3,
+      "taxa_aceite_estimada": 0.3,
+      "alphas_por_quantil": {
+        "0.15": 0.889,
+        "0.3": 1.0,
+        "0.5": 1.0,
+        "0.75": 1.0,
+        "0.9": 1.0
+      },
+      "limiar": 2000.0,
+      "decisao": "DEFESA",
+      "override_aplicado": true,
+      "razao_override": "IFP_FORTE",
+      "probabilidade_perda": 0.0525,
+      "valor_condenacao_estimado": 7871.48,
+      "valor_condenacao_faixa_ic80": {
+        "q10": 5775.49,
+        "q90": 13063.98
+      },
+      "custo_processual_cp": 1408.72,
+      "custo_esperado_defesa": 1821.72,
+      "valor_acordo_sugerido": null,
+      "economia_esperada_vs_defesa": null,
+      "explicacao": "Decisao: DEFESA. Probabilidade de perda prevista: 5.2%. Condenacao estimada (se perder): R$ 7,871.48 (faixa IC 80%: R$ 5,775.49 a R$ 13,063.98). Custo esperado da defesa: R$ 1,821.72. A decisao foi sobreposta pela forca probatoria dos subsidios (IFP = 1.00): documentacao agregada acima do limiar de 0.75. Recomenda-se DEFESA independente do modelo ML. Politica aplicada: Arriscada."
+    }
+  }
+}
