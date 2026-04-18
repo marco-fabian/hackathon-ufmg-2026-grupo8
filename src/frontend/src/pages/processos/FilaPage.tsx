@@ -1,23 +1,32 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Scale, CheckCircle2, XCircle, FileSearch, UserCheck, ChevronUp, ChevronDown, ChevronsUpDown, Search } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { mockProcessos, mockStats, type Processo } from '@/data/mockData'
 import { useView } from '@/context/ViewContext'
 import { Link } from 'react-router-dom'
+import { listarCasos } from '@/services/casosService'
+import { casoToProcesso } from '@/utils/backendToProcesso'
 
 type FilterStatus = 'todos' | 'concluido' | 'concluido_aceito' | 'concluido_rejeitado' | 'aguardando_subsidios' | 'aguardando_aprovacao_advogado' | 'aguardando_aprovacao_juiz'
 type SortKey = keyof Pick<Processo, 'numeroCaso' | 'uf' | 'subAssunto' | 'valorCausa' | 'valorAcordoSugerido' | 'statusDaIA'>
 type SortDir = 'asc' | 'desc'
 
-const ufs = Array.from(new Set(mockProcessos.map((p) => p.uf))).sort()
-
 export default function FilaPage() {
   const { userRole } = useView()
+  const [processos, setProcessos] = useState<Processo[]>(mockProcessos)
   const [filtro, setFiltro] = useState<FilterStatus>('todos')
   const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const [busca, setBusca] = useState('')
   const [ufSelecionada, setUfSelecionada] = useState('')
+
+  useEffect(() => {
+    listarCasos()
+      .then(casos => setProcessos([...casos.map(casoToProcesso), ...mockProcessos]))
+      .catch(() => { /* fica no mock */ })
+  }, [])
+
+  const ufs = useMemo(() => Array.from(new Set(processos.map((p) => p.uf))).sort(), [processos])
 
   const statusColor: Record<string, string> = {
     concluido: 'text-green-600 bg-green-50 border-green-200',
@@ -60,10 +69,10 @@ export default function FilaPage() {
 
   const sorted = useMemo(() => {
     let list = filtro === 'todos'
-      ? [...mockProcessos]
+      ? [...processos]
       : filtro === 'concluido'
-        ? mockProcessos.filter((p) => p.statusDaIA === 'concluido' || p.statusDaIA === 'concluido_aceito' || p.statusDaIA === 'concluido_rejeitado')
-        : mockProcessos.filter((p) => p.statusDaIA === filtro)
+        ? processos.filter((p) => p.statusDaIA === 'concluido' || p.statusDaIA === 'concluido_aceito' || p.statusDaIA === 'concluido_rejeitado')
+        : processos.filter((p) => p.statusDaIA === filtro)
 
     if (ufSelecionada) list = list.filter((p) => p.uf === ufSelecionada)
     if (busca.trim()) list = list.filter((p) =>
@@ -80,7 +89,7 @@ export default function FilaPage() {
       })
     }
     return list
-  }, [filtro, ufSelecionada, busca, sortKey, sortDir])
+  }, [processos, filtro, ufSelecionada, busca, sortKey, sortDir])
 
   const chipBase =
     'flex items-center gap-2 rounded-lg px-4 py-2 border cursor-pointer transition-all select-none text-left'
@@ -255,7 +264,7 @@ export default function FilaPage() {
                     </td>
                     <td className="px-4 py-3 text-center">
                       <Link
-                        to="/analise"
+                        to={`/analise?id=${proc.numeroCaso}`}
                         className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
                       >
                         Analisar →

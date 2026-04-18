@@ -8,8 +8,11 @@ Formulas:
     Decisao = ACORDO se E[C_defesa] > Limiar, senao DEFESA
     V_acordo = alpha * E[C_defesa]
 
-Parametros alpha, Limiar e Cp NAO sao valores arbitrarios em config -
-sao derivados automaticamente do backtesting sobre a base historica.
+alpha e previsto condicionalmente pelo modelo_alpha (quantile regression
+treinado nos 280 acordos reais da base). Cada politica mapeia para um
+quantil — Conservadora -> q75 (taxa de aceite ~75%), Moderada -> q50,
+Arriscada -> q30 — lendo o quantil como "taxa historica de aceite".
+Limiar e Cp ficam em parametros_otimizados.json, derivados dos dados.
 
 Features documentais (do extrator de PDFs) entram como overrides
 deterministicos de borda, nao como multiplicadores calibrados.
@@ -22,15 +25,12 @@ from enum import Enum
 from typing import Optional
 
 import joblib
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
 from . import config as cfg
 from . import features as feat
+from . import modelo_alpha as m_alpha
 
 
 class Decisao(str, Enum):
@@ -56,11 +56,14 @@ class ResultadoDecisao:
     custo_esperado_defesa: float
     valor_acordo_sugerido: Optional[float]
     alpha_aplicado: float
-    limiar_aplicado: float
-    policy: str
-    override_aplicado: bool
-    razao_override: RazaoOverride
-    explicacao: str
+    alpha_quantil: float
+    taxa_aceite_estimada: float
+    alphas_por_quantil: dict = field(default_factory=dict)
+    limiar_aplicado: float = 0.0
+    policy: str = ""
+    override_aplicado: bool = False
+    razao_override: RazaoOverride = RazaoOverride.NENHUMA
+    explicacao: str = ""
     features_entrada: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
@@ -152,7 +155,8 @@ def _explicar(resultado: ResultadoDecisao) -> str:
     elif resultado.decisao == Decisao.ACORDO:
         base += (
             f"Valor sugerido de acordo: R$ {resultado.valor_acordo_sugerido:,.2f} "
-            f"(alpha = {resultado.alpha_aplicado:.2f} x custo esperado). "
+            f"(alpha = {resultado.alpha_aplicado:.2f} x custo esperado; "
+            f"taxa historica de aceite estimada: {resultado.taxa_aceite_estimada:.0%}). "
             f"Custo esperado (R$ {resultado.custo_esperado_defesa:,.2f}) supera o "
             f"limiar de R$ {resultado.limiar_aplicado:,.2f}."
         )
@@ -174,6 +178,7 @@ class MotorDecisao:
         modelo_a,
         modelo_b,
         modelos_quantis: dict,
+        modelos_alpha: dict,
         encoder,
         stats: feat.TargetEncodingStats,
         valor_causa_bins: tuple[float, float],
@@ -183,6 +188,7 @@ class MotorDecisao:
         self.modelo_a = modelo_a
         self.modelo_b = modelo_b
         self.modelos_quantis = modelos_quantis
+        self.modelos_alpha = modelos_alpha
         self.encoder = encoder
         self.stats = stats
         self.valor_causa_bins = valor_causa_bins
@@ -190,7 +196,7 @@ class MotorDecisao:
         self.policy = policy
 
         politica = parametros["politicas"][policy]
-        self.alpha = float(politica["alpha"])
+        self.quantil_alpha = float(politica["quantil_alpha"])
         self.limiar = float(politica["limiar"])
         self.cp = float(parametros["cp"])
 
@@ -199,6 +205,7 @@ class MotorDecisao:
         modelo_a = joblib.load(cfg.MODEL_A_PATH)
         modelo_b = joblib.load(cfg.MODEL_B_PATH)
         modelos_quantis = joblib.load(cfg.MODEL_B_QUANTIS_PATH)
+        modelos_alpha = m_alpha.carregar_modelo_alpha()
         encoder, stats, bins = feat.carregar_artefatos_features()
         with open(cfg.PARAMS_OTIMIZADOS_PATH, "r", encoding="utf-8") as f:
             parametros = json.load(f)
@@ -207,7 +214,10 @@ class MotorDecisao:
             disp = list(parametros["politicas"].keys())
             raise ValueError(f"Policy '{policy}' invalida. Disponiveis: {disp}")
 
-        return cls(modelo_a, modelo_b, modelos_quantis, encoder, stats, bins, parametros, policy)
+        return cls(
+            modelo_a, modelo_b, modelos_quantis, modelos_alpha,
+            encoder, stats, bins, parametros, policy,
+        )
 
     def _prever(self, X: pd.DataFrame) -> tuple[float, float, tuple[float, float]]:
         p_l = float(self.modelo_a.predict_proba(X)[:, 1][0])
@@ -236,13 +246,19 @@ class MotorDecisao:
         p_l, vc, faixa = self._prever(X)
         e_c_defesa = p_l * vc + self.cp
 
+        alphas_cond = m_alpha.prever_alphas(X, self.modelos_alpha)
+        quantil = self.quantil_alpha
+        if quantil not in alphas_cond:
+            quantil = min(alphas_cond.keys(), key=lambda q: abs(q - self.quantil_alpha))
+        alpha_aplicado = alphas_cond[quantil]
+
         override, razao = aplicar_overrides_documentais(features_documentais)
         if override is not None:
             decisao_final = override
         else:
             decisao_final = Decisao.ACORDO if e_c_defesa > self.limiar else Decisao.DEFESA
 
-        v_acordo = self.alpha * e_c_defesa if decisao_final == Decisao.ACORDO else None
+        v_acordo = alpha_aplicado * e_c_defesa if decisao_final == Decisao.ACORDO else None
 
         resultado = ResultadoDecisao(
             decisao=decisao_final,
@@ -252,7 +268,10 @@ class MotorDecisao:
             custo_processual=self.cp,
             custo_esperado_defesa=e_c_defesa,
             valor_acordo_sugerido=v_acordo,
-            alpha_aplicado=self.alpha,
+            alpha_aplicado=alpha_aplicado,
+            alpha_quantil=quantil,
+            taxa_aceite_estimada=quantil,
+            alphas_por_quantil=alphas_cond,
             limiar_aplicado=self.limiar,
             policy=self.policy,
             override_aplicado=override is not None,
@@ -269,174 +288,13 @@ class MotorDecisao:
         return resultado
 
 
-def _custo_total_simulado(
-    alpha: float,
-    limiar: float,
-    cp: float,
-    p_l: np.ndarray,
-    vc_previsto: np.ndarray,
-    vc_real: np.ndarray,
-    perde_real: np.ndarray,
-) -> tuple[float, float]:
-    e_c = p_l * vc_previsto + cp
-    acorda = e_c > limiar
-    n = len(p_l)
-    custo_acordo = alpha * e_c[acorda]
-    custo_defesa = np.where(perde_real[~acorda] == 1, vc_real[~acorda], 0.0) + cp
-    custo_total = float(custo_acordo.sum() + custo_defesa.sum())
-    taxa_acordo = float(acorda.mean()) if n > 0 else 0.0
-    return custo_total, taxa_acordo
-
-
-def estimar_cp(df_perdas: pd.DataFrame) -> float:
-    return float(df_perdas[cfg.COL_VALOR_CONDENACAO].median() * cfg.CP_FATOR_MEDIANA)
-
-
-def rodar_backtesting(salvar: bool = True) -> dict:
-    """Treina predicoes sobre TODA a base historica usando cross-prediction
-    (evitando vazamento: usa o modelo treinado no split de treino para prever
-    o split de teste, e vice-versa via re-treino rapido no teste para prever
-    o treino). Para simplicidade de tempo, usamos o split de teste como
-    universo de backtesting - ainda sao 12000 processos.
-
-    Gera:
-      - backtesting.csv com todas as combinacoes (alpha, limiar) testadas
-      - parametros_otimizados.json com as 5 politicas nomeadas
-      - report_politicas.md e grafico PNG
-    """
-    df = feat.carregar_base()
-    _, df_test = feat.split_treino_teste(df)
-
-    encoder, stats, _ = feat.carregar_artefatos_features()
-    X_test, _, _ = feat.build_features(df_test, encoder=encoder, stats=stats)
-
-    modelo_a = joblib.load(cfg.MODEL_A_PATH)
-    modelo_b = joblib.load(cfg.MODEL_B_PATH)
-
-    p_l = modelo_a.predict_proba(X_test)[:, 1]
-    vc_pred = np.clip(np.expm1(modelo_b.predict(X_test)), 0.0, None)
-    vc_real = df_test[cfg.COL_VALOR_CONDENACAO].astype(float).values
-    perde_real = df_test["perde"].values
-
-    df_perdas_train = df[df["perde"] == 1]
-    cp = estimar_cp(df_perdas_train)
-    print(f"Cp estimado (mediana perdas x {cfg.CP_FATOR_MEDIANA}): R$ {cp:,.2f}")
-
-    custo_defender_tudo = float((np.where(perde_real == 1, vc_real, 0.0) + cp).sum())
-    n = len(df_test)
-
-    print(f"Rodando backtesting em {n} processos (teste)...")
-    linhas = []
-    for alpha in cfg.ALPHAS_GRID:
-        for limiar in cfg.LIMIARES_GRID:
-            custo, taxa = _custo_total_simulado(
-                alpha, limiar, cp, p_l, vc_pred, vc_real, perde_real
-            )
-            economia = custo_defender_tudo - custo
-            linhas.append(
-                {
-                    "alpha": alpha,
-                    "limiar": limiar,
-                    "taxa_acordo": taxa,
-                    "custo_total": custo,
-                    "economia_total": economia,
-                    "economia_por_processo": economia / n,
-                    "economia_pct": economia / custo_defender_tudo,
-                }
-            )
-    df_bt = pd.DataFrame(linhas)
-
-    politicas = {}
-    for nome, taxa_alvo in cfg.POLICIES_ALVO.items():
-        df_bt_sorted = df_bt.assign(dist=lambda d: (d["taxa_acordo"] - taxa_alvo).abs())
-        df_bt_filtrado = df_bt_sorted[df_bt_sorted["dist"] <= 0.08]
-        if df_bt_filtrado.empty:
-            df_bt_filtrado = df_bt_sorted.nsmallest(20, "dist")
-        best = df_bt_filtrado.nlargest(1, "economia_total").iloc[0]
-        politicas[nome] = {
-            "taxa_alvo": taxa_alvo,
-            "alpha": float(best["alpha"]),
-            "limiar": float(best["limiar"]),
-            "taxa_acordo_efetiva": float(best["taxa_acordo"]),
-            "economia_total": float(best["economia_total"]),
-            "economia_por_processo": float(best["economia_por_processo"]),
-            "economia_pct": float(best["economia_pct"]),
-            "custo_total": float(best["custo_total"]),
-        }
-
-    parametros = {
-        "cp": cp,
-        "custo_defender_tudo_backtest": custo_defender_tudo,
-        "n_processos_backtest": n,
-        "politicas": politicas,
-        "policy_default": cfg.POLICY_DEFAULT,
-    }
-
-    if salvar:
-        df_bt.to_csv(cfg.BACKTESTING_CSV_PATH, index=False)
-        with open(cfg.PARAMS_OTIMIZADOS_PATH, "w", encoding="utf-8") as f:
-            json.dump(parametros, f, indent=2, ensure_ascii=False)
-        _gerar_report_politicas(parametros)
-        _gerar_grafico_backtesting(df_bt)
-
-    print("\n=== Catalogo de Politicas ===")
-    for nome, p in politicas.items():
-        print(
-            f"  {nome:14s}: alpha={p['alpha']:.2f}, limiar=R$ {p['limiar']:>6,.0f}, "
-            f"acordos={p['taxa_acordo_efetiva']:>5.1%}, "
-            f"economia=R$ {p['economia_total']:>12,.0f} "
-            f"({p['economia_pct']:>5.1%})"
-        )
-    print(f"\nBaseline defender tudo: R$ {custo_defender_tudo:,.0f}")
-    print(f"Arquivos salvos em: {cfg.MODELS_DIR}")
-
-    return parametros
-
-
-def _gerar_report_politicas(parametros: dict) -> None:
-    linhas = [
-        "# Catalogo de Politicas - Motor de Decisao",
-        "",
-        f"- Cp estimado: R$ {parametros['cp']:,.2f}",
-        f"- Baseline (defender tudo): R$ {parametros['custo_defender_tudo_backtest']:,.0f}",
-        f"- Processos no backtest: {parametros['n_processos_backtest']:,}",
-        "",
-        "| Politica | alpha | Limiar | % Acordos | Economia Total | Economia/Proc | Economia % |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for nome, p in parametros["politicas"].items():
-        linhas.append(
-            f"| {nome} | {p['alpha']:.2f} | R$ {p['limiar']:,.0f} | "
-            f"{p['taxa_acordo_efetiva']:.1%} | R$ {p['economia_total']:,.0f} | "
-            f"R$ {p['economia_por_processo']:,.0f} | {p['economia_pct']:.1%} |"
-        )
-    linhas.append("")
-    linhas.append(f"**Politica default:** {parametros['policy_default']}")
-    cfg.REPORT_POLICIES_PATH.write_text("\n".join(linhas), encoding="utf-8")
-
-
-def _gerar_grafico_backtesting(df_bt: pd.DataFrame) -> None:
-    fig, ax = plt.subplots(figsize=(9, 6))
-    scatter = ax.scatter(
-        df_bt["taxa_acordo"] * 100,
-        df_bt["economia_total"] / 1e6,
-        c=df_bt["alpha"],
-        cmap="viridis",
-        alpha=0.5,
-        s=25,
-    )
-    ax.set_xlabel("Taxa de acordo (%)")
-    ax.set_ylabel("Economia vs defender tudo (R$ milhoes)")
-    ax.set_title("Backtesting: Economia vs Taxa de Acordo")
-    ax.grid(True, alpha=0.3)
-    plt.colorbar(scatter, ax=ax, label="alpha")
-    fig.tight_layout()
-    fig.savefig(cfg.BACKTESTING_PLOT_PATH, dpi=100)
-    plt.close(fig)
-
-
 def pipeline_completo() -> None:
-    """Treina os 2 modelos + quantis e otimiza parametros em sequencia."""
+    """Treina Modelo A, Modelo B (+ quantis) e o modelo de alpha condicional.
+
+    Alpha e previsto por processo a partir dos 280 acordos reais via
+    quantile regression (modelo_alpha). Limiares por politica estao em
+    parametros_otimizados.json.
+    """
     from . import modelo_probabilidade_perda as m_a
     from . import modelo_estimativa_condenacao as m_b
 
@@ -445,8 +303,8 @@ def pipeline_completo() -> None:
     print("\n### Fase 4 - Modelo B e Quantis ###")
     m_b.treinar_modelo_b()
     m_b.treinar_quantis()
-    print("\n### Fase 5 - Backtesting e otimizacao ###")
-    rodar_backtesting()
+    print("\n### Fase 5 - Modelo de alpha condicional (280 acordos reais) ###")
+    m_alpha.treinar_modelo_alpha()
 
 
 def _demo_casos(motor: MotorDecisao) -> None:
@@ -502,11 +360,7 @@ def _demo_casos(motor: MotorDecisao) -> None:
 if __name__ == "__main__":
     import sys
 
-    if "--so-backtest" in sys.argv:
-        rodar_backtesting()
-    elif "--so-demo" in sys.argv:
-        pass
-    else:
+    if "--so-demo" not in sys.argv:
         pipeline_completo()
 
     motor = MotorDecisao.carregar()

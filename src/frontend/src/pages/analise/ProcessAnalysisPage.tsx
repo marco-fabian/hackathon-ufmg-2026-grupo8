@@ -1,28 +1,141 @@
-import { useState } from 'react'
-import { FileText, BrainCircuit, CheckCircle2, DollarSign, Scale, MessageSquare, UploadCloud, Info, AlertCircle, Clock, FileUp, Check, Download, X } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { FileText, BrainCircuit, CheckCircle2, DollarSign, Scale, MessageSquare, UploadCloud, Clock, FileUp, Check, Download, X } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useView } from '@/context/ViewContext'
 import { mockProcessos } from '@/data/mockData'
+import { obterCaso, decidir, obterMetricas } from '@/services/casosService'
+import type { ShapInfo, Metricas } from '@/types/backend'
+
+const POLITICAS = ['Conservadora', 'Moderada', 'Balanceada', 'Agressiva', 'Maxima'] as const
+type NomePolitica = typeof POLITICAS[number]
+
+interface PayloadProcesso {
+  uf: string
+  sub_assunto: string
+  valor_causa: number
+  features_documentais: Record<string, unknown>
+}
+
+interface AnaliseState {
+  numeroCaso: string
+  decisao: 'ACORDO' | 'DEFESA'
+  probabilidadePerda: number
+  valorAcordoSugerido: number | null
+  sugestoes: { valor: number; probabilidadeSucesso: number }[]
+  explicacao: string
+}
+
+function decisaoParaAnalise(d: {
+  decisao: 'ACORDO' | 'DEFESA'
+  probabilidade_perda: number
+  valor_acordo_sugerido: number | null
+  valor_condenacao_faixa: [number, number]
+  explicacao: string
+}, numeroCaso: string): AnaliseState {
+  const alpha = 0.5
+  const [p10, p90] = d.valor_condenacao_faixa
+  return {
+    numeroCaso,
+    decisao: d.decisao,
+    probabilidadePerda: d.probabilidade_perda,
+    valorAcordoSugerido: d.valor_acordo_sugerido,
+    sugestoes: d.decisao === 'ACORDO' ? [
+      { valor: d.valor_acordo_sugerido!, probabilidadeSucesso: 70 },
+      { valor: Math.round(p10 * alpha), probabilidadeSucesso: 90 },
+      { valor: Math.round(p90 * alpha), probabilidadeSucesso: 40 },
+    ] : [],
+    explicacao: d.explicacao,
+  }
+}
 
 export default function ProcessAnalysisPage() {
   const [decision, setDecision] = useState<'acordo' | 'defesa' | null>(null)
   const { userRole } = useView()
+  const [searchParams] = useSearchParams()
 
   const processoMock = mockProcessos[0]!
-  const sugestoes = processoMock.sugestoesValor || []
-  const valorIdeal = sugestoes.length > 0 ? sugestoes[0].valor : 85000
+  const mockSugestoes = processoMock.sugestoesValor || []
+  const mockValorIdeal = mockSugestoes.length > 0 ? mockSugestoes[0].valor : 85000
 
+  const fallback: AnaliseState = {
+    numeroCaso: processoMock.numeroCaso,
+    decisao: 'ACORDO',
+    probabilidadePerda: (processoMock.scoreRisco ?? 78) / 100,
+    valorAcordoSugerido: processoMock.valorAcordoSugerido,
+    sugestoes: mockSugestoes,
+    explicacao: '',
+  }
+
+  const [analise, setAnalise] = useState<AnaliseState>(fallback)
+  const [payload, setPayload] = useState<PayloadProcesso | null>(null)
+  const [politicaSelecionada, setPoliticaSelecionada] = useState<NomePolitica>('Balanceada')
+  const [loadingPolitica, setLoadingPolitica] = useState(false)
+  const [shap, setShap] = useState<ShapInfo | null>(null)
+  const [metricas, setMetricas] = useState<Metricas | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [valorSelecionado, setValorSelecionado] = useState<number>(valorIdeal)
-  const [modalSelection, setModalSelection] = useState<number>(valorIdeal)
+  const [valorSelecionado, setValorSelecionado] = useState<number>(mockValorIdeal)
+  const [modalSelection, setModalSelection] = useState<number>(mockValorIdeal)
+
+  const aplicarResultado = useCallback((estado: AnaliseState) => {
+    const novoValor = estado.valorAcordoSugerido ?? 0
+    setAnalise(estado)
+    setValorSelecionado(novoValor)
+    setModalSelection(novoValor)
+  }, [])
+
+  // Busca métricas do modelo uma vez
+  useEffect(() => {
+    obterMetricas().then(setMetricas).catch(() => {})
+  }, [])
+
+  // Carrega o caso inicial pelo slug
+  useEffect(() => {
+    const id = searchParams.get('id')
+    if (!id || !id.startsWith('caso_')) return
+    obterCaso(id).then(pip => {
+      const p = pip.payload as PayloadProcesso
+      setPayload(p)
+      aplicarResultado(decisaoParaAnalise(pip.decisao, pip.processo_id))
+      // SHAP na carga inicial
+      decidir({
+        uf: p.uf,
+        sub_assunto: p.sub_assunto,
+        valor_causa: p.valor_causa,
+        policy: 'Balanceada',
+        include_shap: true,
+        features_documentais: p.features_documentais,
+      }).then(d => { if (d.shap) setShap(d.shap) }).catch(() => {})
+    }).catch(() => { /* fica no fallback */ })
+  }, [searchParams, aplicarResultado])
+
+  // Re-chama /decidir quando a política muda (e temos um payload real)
+  useEffect(() => {
+    if (!payload) return
+    setLoadingPolitica(true)
+    decidir({
+      uf: payload.uf,
+      sub_assunto: payload.sub_assunto,
+      valor_causa: payload.valor_causa,
+      policy: politicaSelecionada,
+      include_shap: true,
+      features_documentais: payload.features_documentais,
+    }).then(d => {
+      aplicarResultado(decisaoParaAnalise(d as any, analise.numeroCaso))
+      if (d.shap) setShap(d.shap)
+    }).catch(() => {}).finally(() => setLoadingPolitica(false))
+  }, [politicaSelecionada]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const sugestoes = analise.sugestoes
+  const valorIdeal = analise.valorAcordoSugerido ?? 0
 
   return (
-    <DashboardLayout pageTitle="Análise de Processo · Autos nº 0012345-67.2024">
+    <DashboardLayout pageTitle={`Análise de Processo · Autos nº ${analise.numeroCaso}`}>
       <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto pb-6">
         
         {/* SEÇÃO SUPERIOR: Recomendação da IA (Largura Total) */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col shrink-0">
-          <div className="bg-blue-50 border-b border-blue-100 px-5 py-4 flex items-center justify-between">
+          <div className="bg-blue-50 border-b border-blue-100 px-5 py-4 flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-600 rounded-lg text-white shadow-sm">
                 <BrainCircuit size={20} />
@@ -32,6 +145,22 @@ export default function ProcessAnalysisPage() {
                 <p className="text-xs text-blue-700 font-medium">Recomendação Estratégica e Veredito</p>
               </div>
             </div>
+            {payload && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Política:</label>
+                <select
+                  value={politicaSelecionada}
+                  onChange={e => setPoliticaSelecionada(e.target.value as NomePolitica)}
+                  disabled={loadingPolitica}
+                  className="text-sm font-medium text-blue-900 bg-white border border-blue-200 rounded-lg px-3 py-1.5 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 cursor-pointer"
+                >
+                  {POLITICAS.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                {loadingPolitica && <span className="text-xs text-blue-500 animate-pulse">calculando...</span>}
+              </div>
+            )}
           </div>
 
           <div className="p-8 flex flex-col gap-8">
@@ -48,12 +177,15 @@ export default function ProcessAnalysisPage() {
               {/* Veredito */}
               <div className="flex flex-col h-full">
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Veredito Sugerido</p>
-                <div className="flex items-start gap-3 bg-green-50 border border-green-100 p-4 rounded-xl flex-1">
-                  <CheckCircle2 className="text-green-600 mt-0.5 shrink-0" size={20} />
+                <div className={`flex items-start gap-3 p-4 rounded-xl flex-1 border ${analise.decisao === 'ACORDO' ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-200'}`}>
+                  <CheckCircle2 className={`mt-0.5 shrink-0 ${analise.decisao === 'ACORDO' ? 'text-green-600' : 'text-slate-500'}`} size={20} />
                   <div>
-                    <span className="font-bold text-green-800 text-lg">Propor Acordo</span>
-                    <p className="text-sm text-green-700 mt-1 leading-relaxed">
-                      Alta probabilidade de perda em 1ª instância (78%) devido a jurisprudência desfavorável.
+                    <span className={`font-bold text-lg ${analise.decisao === 'ACORDO' ? 'text-green-800' : 'text-slate-800'}`}>
+                      {analise.decisao === 'ACORDO' ? 'Propor Acordo' : 'Manter Defesa'}
+                    </span>
+                    <p className={`text-sm mt-1 leading-relaxed ${analise.decisao === 'ACORDO' ? 'text-green-700' : 'text-slate-600'}`}>
+                      Probabilidade de perda prevista: {(analise.probabilidadePerda * 100).toFixed(0)}%
+                      {analise.explicacao ? ` — ${analise.explicacao}` : ''}
                     </p>
                   </div>
                 </div>
@@ -128,6 +260,64 @@ export default function ProcessAnalysisPage() {
                 )}
               </div>
             </div>
+
+            {/* Fatores Determinantes (SHAP) + Confiabilidade do Modelo */}
+            {(shap?.disponivel || metricas) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* SHAP */}
+                {shap?.disponivel && shap.top_features_p_l && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Fatores Determinantes (P. Perda)</p>
+                    <div className="space-y-2">
+                      {shap.top_features_p_l.map((f) => {
+                        const pct = Math.min(Math.abs(f.contribuicao) * 400, 100)
+                        const positivo = f.contribuicao > 0
+                        return (
+                          <div key={f.feature} className="flex items-center gap-3">
+                            <span className="text-xs text-slate-500 w-36 truncate shrink-0" title={f.feature}>{f.feature}</span>
+                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${positivo ? 'bg-red-400' : 'bg-green-400'}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            <span className={`text-xs font-semibold w-14 text-right ${positivo ? 'text-red-600' : 'text-green-600'}`}>
+                              {positivo ? '+' : ''}{f.contribuicao.toFixed(3)}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-2">Vermelho aumenta risco · Verde reduz risco</p>
+                  </div>
+                )}
+
+                {/* Métricas do Modelo */}
+                {metricas && (
+                  <div>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Confiabilidade do Modelo</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">AUC-ROC</p>
+                        <p className="font-bold text-slate-800 text-lg">{metricas.modelo_a.auc_roc.toFixed(3)}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">Calibração (ECE)</p>
+                        <p className="font-bold text-slate-800 text-lg">{metricas.modelo_a.ece.toFixed(3)}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">MAE Condenação</p>
+                        <p className="font-bold text-slate-800 text-lg">R$ {metricas.modelo_b.mae.toLocaleString('pt-BR')}</p>
+                      </div>
+                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">Cobertura IC 80%</p>
+                        <p className="font-bold text-slate-800 text-lg">{(metricas.quantis.cobertura_ic80 * 100).toFixed(1)}%</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
