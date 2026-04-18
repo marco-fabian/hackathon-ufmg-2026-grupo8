@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import type { ReactNode } from 'react'
-import { ChevronUp, ChevronDown, ChevronsUpDown, Search, X } from 'lucide-react'
+import { ChevronUp, ChevronDown, ChevronsUpDown, Search, X, ChevronLeft, ChevronRight } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────
 export type SortDirection = 'asc' | 'desc' | null
@@ -25,6 +25,7 @@ interface DataTableBaseProps<T> {
   onSort?: (column: string, direction: SortDirection) => void
   caption?: string
   stickyHeader?: boolean
+  pageSize?: number
 }
 
 // ─── Sort Icon ─────────────────────────────────────────────────────────────
@@ -73,9 +74,11 @@ export function DataTableBase<T extends Record<string, unknown>>({
   onSort,
   caption,
   stickyHeader = false,
+  pageSize = 50,
 }: DataTableBaseProps<T>) {
 
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [page, setPage]       = useState(0)
 
   function handleSort(colKey: string, sortable?: boolean) {
     if (!sortable || !onSort) return
@@ -89,12 +92,13 @@ export function DataTableBase<T extends Record<string, unknown>>({
   }
 
   function setFilter(key: string, value: string) {
+    setPage(0)
     setFilters(prev => value ? { ...prev, [key]: value } : Object.fromEntries(Object.entries(prev).filter(([k]) => k !== key)))
   }
 
   const hasAnyFilter = Object.keys(filters).length > 0
 
-  const filteredData = data.filter(row =>
+  const filteredData = useMemo(() => data.filter(row =>
     columns.every(col => {
       const colKey = String(col.key)
       const term = filters[colKey]
@@ -102,7 +106,11 @@ export function DataTableBase<T extends Record<string, unknown>>({
       const rawValue = row[colKey]
       return String(rawValue ?? '').toLowerCase().includes(term.toLowerCase())
     })
-  )
+  ), [data, filters, columns])
+
+  const totalPages  = Math.max(1, Math.ceil(filteredData.length / pageSize))
+  const currentPage = Math.min(page, totalPages - 1)
+  const pageData    = filteredData.slice(currentPage * pageSize, (currentPage + 1) * pageSize)
 
   return (
     <div
@@ -131,11 +139,9 @@ export function DataTableBase<T extends Record<string, unknown>>({
             letterSpacing: '0.08em',
           }}>
             {caption}
-            {hasAnyFilter && (
-              <span style={{ marginLeft: '8px', color: 'var(--color-primary-600)', fontWeight: 500 }}>
-                · {filteredData.length} resultado(s)
-              </span>
-            )}
+            <span style={{ marginLeft: '8px', color: 'var(--color-primary-600)', fontWeight: 500 }}>
+              · {filteredData.length.toLocaleString('pt-BR')} registro(s)
+            </span>
           </span>
           {hasAnyFilter && (
             <button
@@ -158,7 +164,7 @@ export function DataTableBase<T extends Record<string, unknown>>({
         </div>
       )}
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', maxHeight: '480px', overflowY: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
 
           {/* Table HEAD */}
@@ -307,11 +313,11 @@ export function DataTableBase<T extends Record<string, unknown>>({
                 </td>
               </tr>
             ) : (
-              filteredData.map((row, rowIdx) => (
+              pageData.map((row, rowIdx) => (
                 <tr
                   key={rowIdx}
                   style={{
-                    borderBottom: rowIdx < filteredData.length - 1 ? '1px solid var(--color-border)' : undefined,
+                    borderBottom: rowIdx < pageData.length - 1 ? '1px solid var(--color-border)' : undefined,
                     transition: 'background-color 100ms ease',
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-subtle)')}
@@ -340,6 +346,52 @@ export function DataTableBase<T extends Record<string, unknown>>({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 16px',
+          borderTop: '1px solid var(--color-border)',
+          fontSize: '12px', color: 'var(--color-text-secondary)',
+        }}>
+          <span>
+            Página {currentPage + 1} de {totalPages.toLocaleString('pt-BR')}
+            {' '}·{' '}
+            {(currentPage * pageSize + 1).toLocaleString('pt-BR')}–{Math.min((currentPage + 1) * pageSize, filteredData.length).toLocaleString('pt-BR')} de {filteredData.length.toLocaleString('pt-BR')}
+          </span>
+          <div style={{ display: 'flex', gap: '4px' }}>
+            <button
+              onClick={() => setPage(0)}
+              disabled={currentPage === 0}
+              style={{ padding: '4px 8px', border: '1px solid var(--color-border)', borderRadius: '5px', background: 'transparent', cursor: currentPage === 0 ? 'default' : 'pointer', opacity: currentPage === 0 ? 0.4 : 1, fontSize: '11px', color: 'var(--color-text-secondary)' }}
+            >
+              «
+            </button>
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={currentPage === 0}
+              style={{ padding: '4px 6px', border: '1px solid var(--color-border)', borderRadius: '5px', background: 'transparent', cursor: currentPage === 0 ? 'default' : 'pointer', opacity: currentPage === 0 ? 0.4 : 1, display: 'flex', alignItems: 'center' }}
+            >
+              <ChevronLeft size={13} />
+            </button>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={currentPage === totalPages - 1}
+              style={{ padding: '4px 6px', border: '1px solid var(--color-border)', borderRadius: '5px', background: 'transparent', cursor: currentPage === totalPages - 1 ? 'default' : 'pointer', opacity: currentPage === totalPages - 1 ? 0.4 : 1, display: 'flex', alignItems: 'center' }}
+            >
+              <ChevronRight size={13} />
+            </button>
+            <button
+              onClick={() => setPage(totalPages - 1)}
+              disabled={currentPage === totalPages - 1}
+              style={{ padding: '4px 8px', border: '1px solid var(--color-border)', borderRadius: '5px', background: 'transparent', cursor: currentPage === totalPages - 1 ? 'default' : 'pointer', opacity: currentPage === totalPages - 1 ? 0.4 : 1, fontSize: '11px', color: 'var(--color-text-secondary)' }}
+            >
+              »
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

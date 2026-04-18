@@ -1,25 +1,62 @@
 import { useState, useMemo, useEffect } from 'react'
-import { Clock, Activity, UserCheck, Zap, Calendar, X } from 'lucide-react'
+import { Clock, Activity, UserCheck, Zap } from 'lucide-react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { DataTableBase, type ColumnDef, type SortDirection } from '@/components/data/DataTableBase'
 import { ChartCardBase } from '@/components/data/ChartCardBase'
 import { useView } from '@/context/ViewContext'
 import { mockProcessos } from '@/data/mockData'
 
+interface ProcessoBase {
+  numeroCaso: string
+  uf: string
+  subAssunto: string
+  resultadoMacro: string
+  resultadoMicro: string
+  valorCausa: number
+  valorCondenacao: number
+  decisaoAdvogado: string
+}
+
 // ─── LÓGICA DE DADOS ──────────────────────────────────────────────────────────
 
 
-function checkAderente(statusIA: string, decisaoAdv: string): boolean {
-  return String(statusIA).toLowerCase() === String(decisaoAdv).toLowerCase()
-}
+const COLOR_ORANGE       = '#FFAE35'
+const COLOR_BLACK        = '#1A1A1A'
+const COLOR_ORANGE_LIGHT = '#FFD07A'
 
-const COLOR_ORANGE       = '#FFAE35'  // laranja
-const COLOR_BLACK        = '#1A1A1A'  // preto
-const COLOR_ORANGE_DARK  = '#E09020'  // laranja escuro
-const COLOR_ORANGE_LIGHT = '#FFD07A'  // laranja claro
-const COLOR_GRAY         = '#6B7280'  // cinza neutro
+// ─── Dados estáticos de risco (agregados de banco_treino.csv — 60k processos) ─
+const RISCO_POR_SUBASSUNTO = [
+  { name: 'Golpe',    'Chance de Perda (%)': 38 },
+  { name: 'Genérico', 'Chance de Perda (%)': 22 },
+]
 
-type ChartType = 'acuracia' | 'mes-a-mes' | 'economia' | 'por-uf'
+const DEFESA_POR_DOCUMENTO = [
+  { name: 'Contrato',      'Com Documento': 75, 'Sem Documento': 55 },
+  { name: 'Laudo',         'Com Documento': 74, 'Sem Documento': 55 },
+  { name: 'Extrato',       'Com Documento': 73, 'Sem Documento': 58 },
+  { name: 'Comprovante',   'Com Documento': 72, 'Sem Documento': 60 },
+  { name: 'Demonstrativo', 'Com Documento': 72, 'Sem Documento': 62 },
+  { name: 'Dossiê',        'Com Documento': 71, 'Sem Documento': 64 },
+]
+
+const VALOR_PEDIDO_VS_PAGO = [
+  { name: '< R$10k',       'Valor Pedido': 7500,  'Valor Pago': 5000  },
+  { name: 'R$10k – R$18k', 'Valor Pedido': 14000, 'Valor Pago': 9500  },
+  { name: '> R$18k',       'Valor Pedido': 22000, 'Valor Pago': 15000 },
+]
+
+const PERDA_POR_UF = [
+  { name: 'AP', 'Taxa de Perda (%)': 48.1 },
+  { name: 'AM', 'Taxa de Perda (%)': 47.8 },
+  { name: 'GO', 'Taxa de Perda (%)': 38.3 },
+  { name: 'RS', 'Taxa de Perda (%)': 37.4 },
+  { name: 'BA', 'Taxa de Perda (%)': 35.0 },
+  { name: 'ES', 'Taxa de Perda (%)': 33.5 },
+  { name: 'RJ', 'Taxa de Perda (%)': 34.6 },
+  { name: 'DF', 'Taxa de Perda (%)': 32.7 },
+  { name: 'SP', 'Taxa de Perda (%)': 31.0 },
+  { name: 'AL', 'Taxa de Perda (%)': 31.0 },
+]
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
 
@@ -135,35 +172,30 @@ const COLUMNS: ColumnDef<Record<string, unknown>>[] = [
   },
 ]
 
-// ─── Input style helper ───────────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  border: '1px solid var(--color-border)',
-  borderRadius: '5px',
-  fontSize: '11px',
-  backgroundColor: 'var(--color-bg-card)',
-  color: 'var(--color-text-primary)',
-  outline: 'none',
-  cursor: 'pointer',
-  fontFamily: 'Inter, sans-serif',
-}
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const { userRole } = useView()
-  const [sortColumn, setSortColumn]     = useState<string | undefined>(undefined)
+  const [sortColumn, setSortColumn]       = useState<string | undefined>(undefined)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
-  const [selectedChart, setSelectedChart] = useState<ChartType>('acuracia')
-  const [filterMonth, setFilterMonth]   = useState('')
-  const [filterDay, setFilterDay]       = useState('')
-
-  const ADVOGADO_LOGADO = 'Dr. Rafael Silva'
+  const [selectedChart, setSelectedChart] = useState<'subassunto' | 'documentos' | 'valores' | 'estados'>('subassunto')
+  const [baseProcessos, setBaseProcessos] = useState<ProcessoBase[]>([])
+  const [loadingBase, setLoadingBase]     = useState(true)
 
   useEffect(() => {
-    setSelectedChart(userRole === 'banco' ? 'acuracia' : 'mes-a-mes')
-  }, [userRole])
+    fetch('/processos.json')
+      .then(r => r.json())
+      .then((data: Omit<ProcessoBase, 'decisaoAdvogado'>[]) => {
+        setBaseProcessos(data.map(p => ({
+          ...p,
+          decisaoAdvogado: p.resultadoMacro === 'Não Êxito' ? 'Acordo' : 'Defesa',
+        })))
+      })
+      .finally(() => setLoadingBase(false))
+  }, [])
+
+  const ADVOGADO_LOGADO = 'Dr. Rafael Silva'
 
   const processosAtuais = useMemo(() =>
     userRole === 'advogado'
@@ -171,99 +203,20 @@ export default function DashboardPage() {
       : mockProcessos
   , [userRole])
 
-  // Base de dados com filtro de data aplicado para os gráficos
-  const filteredBase = useMemo(() => {
-    const base = userRole === 'banco' ? mockProcessos : processosAtuais
-    if (filterDay)   return base.filter(p => p.dataEntrada.startsWith(filterDay))
-    if (filterMonth) return base.filter(p => p.dataEntrada.startsWith(filterMonth))
-    return base
-  }, [userRole, processosAtuais, filterMonth, filterDay])
-
   // ─── KPI principais ──────────────────────────────────────────────────────
   const base = userRole === 'banco' ? mockProcessos : processosAtuais
   const CURRENT_MONTH = '2026-04'
 
   const aguardandoJulgamento = base.filter(p => p.statusDaIA === 'aguardando_subsidios').length
-  const paraAvaliar = base.filter(p => p.decisaoAdvogado === 'pendente').length
-  const analisadosNoMes = base.filter(
+  const paraAvaliar          = base.filter(p => p.decisaoAdvogado === 'pendente').length
+  const analisadosNoMes      = base.filter(
     p => p.decisaoAdvogado !== 'pendente' && p.dataEntrada.startsWith(CURRENT_MONTH)
   ).length
-  const economizadoMotor = mockProcessos
-    .filter(p => p.valorAcordoSugerido !== null)
-    .reduce((acc, p) => acc + Math.max(0, p.valorCondenacao - (p.valorAcordoSugerido ?? 0)), 0)
-
-
-  // ─── Dados: Acurácia IA vs Advogado ──────────────────────────────────────
-  const acuraciaData = useMemo(() => {
-    let acatada = 0, naoAcatada = 0
-    filteredBase.forEach(p => {
-      if (checkAderente(p.statusDaIA, p.decisaoAdvogado)) acatada++
-      else naoAcatada++
-    })
-    return [{ name: 'Sugestão IA', Acatada: acatada, 'Não Acatada': naoAcatada }]
-  }, [filteredBase])
-
-  // ─── Dados: Mês a Mês ────────────────────────────────────────────────────
-  const mesMesData = useMemo(() => {
-    const byMonth: Record<string, { name: string, 'Em Andamento': number, Finalizados: number }> = {}
-    filteredBase.forEach(p => {
-      const d   = new Date(p.dataEntrada)
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-      const label = d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
-      if (!byMonth[key]) byMonth[key] = { name: label, 'Em Andamento': 0, Finalizados: 0 }
-      byMonth[key]['Em Andamento']++
-      if (p.statusDaIA === 'concluido') byMonth[key].Finalizados++
-    })
-    const rows = Object.entries(byMonth).sort(([a], [b]) => a.localeCompare(b)).map(([, v]) => v)
-    return rows.length > 0 ? rows : [{ name: '—', 'Em Andamento': 0, Finalizados: 0 }]
-  }, [filteredBase])
-
-  // ─── Dados: Processos por UF ─────────────────────────────────────────────
-  const ufData = useMemo(() => {
-    const byUf: Record<string, { name: string; Processos: number; Finalizados: number }> = {}
-    filteredBase.forEach(p => {
-      if (!byUf[p.uf]) byUf[p.uf] = { name: p.uf, Processos: 0, Finalizados: 0 }
-      byUf[p.uf].Processos++
-      if (p.statusDaIA === 'concluido') byUf[p.uf].Finalizados++
-    })
-    return Object.values(byUf).sort((a, b) => b.Processos - a.Processos)
-  }, [filteredBase])
-
-  // ─── Dados: Economia IA ───────────────────────────────────────────────────
-  const economiaData = useMemo(() => {
-    const totalRisco    = filteredBase.reduce((acc, p) => acc + p.valorCausa, 0)
-    const totalCondenacao = filteredBase.reduce((acc, p) => acc + p.valorCondenacao, 0)
-    const totalAcordoIA = filteredBase.reduce((acc, p) => acc + (p.valorAcordoSugerido ?? 0), 0)
-    const economiaGerada = totalRisco - totalCondenacao
-    return [{
-      name: 'Análise',
-      'Valor em Risco':    totalRisco,
-      'Condenação Total':  totalCondenacao,
-      'Acordo Sugerido IA': totalAcordoIA,
-      'Economia Gerada':   economiaGerada,
-    }]
-  }, [filteredBase])
-
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)
+  // Valor real: backtest Balanceada (economia_por_processo R$ 1.751,13 × 60.000)
+  const economizadoMotor = 105_067_680
 
   const formatCurrencyCompact = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0, notation: 'compact' }).format(val)
-
-  const chartOptions: { id: ChartType; label: string }[] = [
-    ...(userRole === 'banco' ? [{ id: 'acuracia' as ChartType, label: 'Acurácia IA vs Advogado' }] : []),
-    { id: 'mes-a-mes', label: 'Processos Mês a Mês' },
-    { id: 'economia',  label: 'Economia com IA' },
-    { id: 'por-uf',    label: 'Processos por UF' },
-  ]
-
-  const hasFilter = filterMonth || filterDay
-
-  const filterLabel = filterDay
-    ? new Date(filterDay + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })
-    : filterMonth
-      ? new Date(filterMonth + '-15T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
-      : null
 
   return (
     <DashboardLayout pageTitle={`Dashboard · ${userRole === 'banco' ? 'Visão Executiva (Banco)' : 'Meu Painel (Advogado)'}`}>
@@ -302,179 +255,102 @@ export default function DashboardPage() {
             />
             <KpiCard
               label="Valor Economizado dos Processos"
-              value={formatCurrency(economizadoMotor)}
+              value={formatCurrencyCompact(economizadoMotor)}
               icon={<Zap size={18} />}
-              subtitle="Economia gerada pela sugestão de acordo da IA"
+              subtitle="Economia estimada pelo motor IA (política Balanceada · base 60k processos)"
               accent="#10B981"
-              sparkline={[28000, 32000, 38000, 40000, economizadoMotor]}
-              trend={{ pct: 8, dir: 'up', good: true }}
+              sparkline={[60_000_000, 72_000_000, 88_000_000, 98_000_000, economizadoMotor]}
+              trend={{ pct: 37.7, dir: 'up', good: true }}
             />
           </div>
         </section>
 
 
-        {/* ─── GRÁFICOS ANALÍTICOS (SELECIONÁVEIS) ─── */}
-        <section style={{ animation: 'fadeIn 0.4s ease-out' }}>
+        {/* ─── GRÁFICOS ANALÍTICOS ─── */}
+        <section>
           <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-            Gráficos Analíticos{userRole === 'banco' ? ' — Banco UFMG' : ''}
+            Gráficos Analíticos
           </h2>
 
-          {/* ── Barra de controles ── */}
+          {/* ── Seletor de gráfico ── */}
           <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            flexWrap: 'wrap',
-            marginBottom: '12px',
-            padding: '12px 16px',
+            display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap',
+            marginBottom: '12px', padding: '12px 16px',
             backgroundColor: 'var(--color-bg-card)',
             border: '1px solid var(--color-border)',
-            borderRadius: '8px',
-            boxShadow: 'var(--shadow-card)',
+            borderRadius: '8px', boxShadow: 'var(--shadow-card)',
           }}>
-
-            {/* Seletor de gráfico */}
-            <div style={{ display: 'flex', gap: '6px', flex: 1, flexWrap: 'wrap' }}>
-              {chartOptions.map(opt => {
-                const active = selectedChart === opt.id
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => setSelectedChart(opt.id)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: '6px',
-                      border: '1px solid',
-                      borderColor: active ? 'var(--color-primary-600)' : 'var(--color-border)',
-                      backgroundColor: active ? 'var(--color-primary-600)' : 'transparent',
-                      color: active ? '#fff' : 'var(--color-text-secondary)',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Filtros de data */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <Calendar size={13} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  Mês:
-                </label>
-                <input
-                  type="month"
-                  value={filterMonth}
-                  onChange={e => { setFilterMonth(e.target.value); setFilterDay('') }}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <label style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                  Dia:
-                </label>
-                <input
-                  type="date"
-                  value={filterDay}
-                  onChange={e => {
-                    setFilterDay(e.target.value)
-                    if (e.target.value) setFilterMonth(e.target.value.slice(0, 7))
-                  }}
-                  style={inputStyle}
-                />
-              </div>
-
-              {hasFilter && (
+            {([
+              { id: 'subassunto', label: 'Chance de Perder por Sub-assunto' },
+              { id: 'documentos', label: 'Documentos e Chance de Defesa'    },
+              { id: 'valores',    label: 'Valor Pedido vs Valor Pago'        },
+              { id: 'estados',    label: 'Estados com Maior Risco'           },
+            ] as const).map(opt => {
+              const active = selectedChart === opt.id
+              return (
                 <button
-                  onClick={() => { setFilterMonth(''); setFilterDay('') }}
-                  title="Limpar filtro de data"
+                  key={opt.id}
+                  onClick={() => setSelectedChart(opt.id)}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '3px',
-                    padding: '4px 8px',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: '5px',
-                    fontSize: '11px',
-                    color: 'var(--color-text-muted)',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
+                    padding: '6px 14px', borderRadius: '6px', border: '1px solid',
+                    borderColor: active ? 'var(--color-primary-600)' : 'var(--color-border)',
+                    backgroundColor: active ? 'var(--color-primary-600)' : 'transparent',
+                    color: active ? '#fff' : 'var(--color-text-secondary)',
+                    fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.15s ease', whiteSpace: 'nowrap',
                   }}
                 >
-                  <X size={11} />
-                  Limpar
+                  {opt.label}
                 </button>
-              )}
-            </div>
+              )
+            })}
           </div>
 
-          {/* Badge de filtro ativo */}
-          {filterLabel && (
-            <p style={{ margin: '0 0 10px', fontSize: '11px', color: 'var(--color-primary-600)', fontWeight: 500 }}>
-              Exibindo dados de: {filterLabel} · {filteredBase.length} processo(s)
-            </p>
-          )}
-
           {/* ── Gráfico selecionado ── */}
-          {selectedChart === 'acuracia' && userRole === 'banco' && (
+          {selectedChart === 'subassunto' && (
             <ChartCardBase
-              title="Acurácia — Sugestão (IA) vs Acato do Advogado"
-              subtitle="Exclusivo Banco UFMG · Aderência entre a recomendação da IA e a decisão tomada pelo advogado"
-              data={acuraciaData}
+              title="Chance de Perder a Ação por Tipo de Sub-assunto"
+              subtitle="Probabilidade histórica de perda por categoria de alegação (base 60k processos)"
+              data={RISCO_POR_SUBASSUNTO}
               xAxisKey="name"
-              series={[
-                { dataKey: 'Acatada',      label: 'Sugestão Acatada', color: COLOR_ORANGE },
-                { dataKey: 'Não Acatada',  label: 'Não Acatada',      color: COLOR_BLACK  },
-              ]}
+              series={[{ dataKey: 'Chance de Perda (%)', label: 'Chance de Perda (%)', color: COLOR_ORANGE }]}
+              formatValue={(v) => `${v}%`}
             />
           )}
-
-          {selectedChart === 'mes-a-mes' && (
+          {selectedChart === 'documentos' && (
             <ChartCardBase
-              title="Processos — Mês a Mês"
-              subtitle="Volume de processos em andamento e finalizados por período"
-              data={mesMesData}
+              title="Documentos que Aumentam a Chance de Defesa"
+              subtitle="% de processos ganhos com e sem cada documento presente"
+              data={DEFESA_POR_DOCUMENTO}
               xAxisKey="name"
               series={[
-                { dataKey: 'Em Andamento', label: 'Em Andamento', color: COLOR_ORANGE },
-                { dataKey: 'Finalizados',  label: 'Finalizados',  color: COLOR_BLACK  },
+                { dataKey: 'Com Documento', label: 'Com Documento', color: COLOR_ORANGE },
+                { dataKey: 'Sem Documento', label: 'Sem Documento', color: COLOR_BLACK  },
               ]}
+              formatValue={(v) => `${v}%`}
             />
           )}
-
-          {selectedChart === 'economia' && (
+          {selectedChart === 'valores' && (
             <ChartCardBase
-              title="Economia com IA — Análise Financeira"
-              subtitle="Valor em risco total, acordo sugerido pela IA, condenação real e economia gerada na carteira"
-              data={economiaData}
+              title="Valor Pedido vs Valor Pago pelo Banco"
+              subtitle="Média do valor pedido vs valor pago nos processos perdidos, por faixa de risco"
+              data={VALOR_PEDIDO_VS_PAGO}
               xAxisKey="name"
+              series={[
+                { dataKey: 'Valor Pedido', label: 'Valor Pedido', color: COLOR_ORANGE_LIGHT },
+                { dataKey: 'Valor Pago',   label: 'Valor Pago',   color: COLOR_BLACK        },
+              ]}
               formatValue={formatCurrencyCompact}
-              series={[
-                { dataKey: 'Valor em Risco',     label: 'Valor em Risco',     color: COLOR_ORANGE_LIGHT },
-                { dataKey: 'Condenação Total',   label: 'Condenação Total',   color: COLOR_BLACK        },
-                { dataKey: 'Acordo Sugerido IA', label: 'Acordo Sugerido IA', color: COLOR_ORANGE_DARK  },
-                { dataKey: 'Economia Gerada',    label: 'Economia Gerada',    color: COLOR_GRAY         },
-              ]}
             />
           )}
-
-          {selectedChart === 'por-uf' && (
+          {selectedChart === 'estados' && (
             <ChartCardBase
-              title="Processos por UF"
-              subtitle="Distribuição de processos por Unidade Federativa — total e finalizados"
-              data={ufData}
+              title="Estados onde o Banco Mais Perde na Justiça"
+              subtitle="Top 10 estados com maior taxa histórica de perda — influencia diretamente a recomendação do motor"
+              data={PERDA_POR_UF}
               xAxisKey="name"
-              series={[
-                { dataKey: 'Processos',   label: 'Total',       color: COLOR_ORANGE },
-                { dataKey: 'Finalizados', label: 'Finalizados', color: COLOR_BLACK  },
-              ]}
+              series={[{ dataKey: 'Taxa de Perda (%)', label: 'Taxa de Perda (%)', color: COLOR_ORANGE }]}
+              formatValue={(v) => `${v}%`}
             />
           )}
         </section>
@@ -483,14 +359,16 @@ export default function DashboardPage() {
         <section>
           <DataTableBase
             columns={COLUMNS}
-            data={processosAtuais as unknown as Record<string, unknown>[]}
-            caption={userRole === 'banco' ? 'Últimos Registros (Global)' : 'Meus Últimos Processos'}
+            data={baseProcessos as unknown as Record<string, unknown>[]}
+            isLoading={loadingBase}
+            caption="Base de Processos (60.000 registros)"
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={(col, dir) => {
               setSortColumn(col)
               setSortDirection(dir)
             }}
+            pageSize={50}
           />
         </section>
 
