@@ -26,6 +26,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.backend.modelo.motor_decisao import MotorDecisao  # noqa: E402
+from src.backend.modelo.rag_jurisprudencia import get_rag  # noqa: E402
 
 app = FastAPI(title="Motor de Decisao Juridica")
 
@@ -147,7 +148,10 @@ def decidir(req: DecidirReq) -> dict[str, Any]:
     fd = req.features_documentais.model_dump() if req.features_documentais else None
     motor = get_motor(req.policy)
     resultado = motor.decidir(req.uf, req.sub_assunto, req.valor_causa, fd)
+    rag = get_rag()
+    jurisprudencias = rag.buscar(req.sub_assunto, resultado.razao_override.value, resultado.decisao.value)
     out = resultado.to_dict()
+    out["jurisprudencias_relacionadas"] = jurisprudencias
     if req.include_shap:
         from src.backend.modelo.explicador import explicar_shap
         out["shap"] = explicar_shap(motor, req.uf, req.sub_assunto, req.valor_causa)

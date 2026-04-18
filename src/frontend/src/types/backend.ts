@@ -49,6 +49,16 @@ export interface Metricas {
   }
 }
 
+export interface JurisprudenciaRef {
+  id: string
+  tribunal: 'STJ' | 'STF'
+  tipo: string
+  numero: string
+  ementa_resumida: string
+  favoravel_banco: boolean
+  relevancia: number
+}
+
 export interface ResultadoDecisao {
   decisao: 'ACORDO' | 'DEFESA'
   probabilidade_perda: number
@@ -60,6 +70,7 @@ export interface ResultadoDecisao {
   razao_override: string
   policy: string
   explicacao: string
+  jurisprudencias_relacionadas?: JurisprudenciaRef[]
   shap?: ShapInfo
 }
 

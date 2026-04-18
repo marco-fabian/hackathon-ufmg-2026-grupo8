@@ -5,7 +5,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { useView } from '@/context/ViewContext'
 import { mockProcessos } from '@/data/mockData'
 import { obterCaso, decidir, obterMetricas } from '@/services/casosService'
-import type { ShapInfo, Metricas } from '@/types/backend'
+import type { ShapInfo, Metricas, JurisprudenciaRef } from '@/types/backend'
 
 const POLITICAS = ['Conservadora', 'Moderada', 'Balanceada', 'Agressiva', 'Maxima'] as const
 type NomePolitica = typeof POLITICAS[number]
@@ -125,6 +125,7 @@ export default function ProcessAnalysisPage() {
   const [loadingPolitica, setLoadingPolitica] = useState(false)
   const [shap, setShap] = useState<ShapInfo | null>(null)
   const [metricas, setMetricas] = useState<Metricas | null>(null)
+  const [jurisprudencias, setJurisprudencias] = useState<JurisprudenciaRef[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [valorSelecionado, setValorSelecionado] = useState<number>(mockValorIdeal)
   const [modalSelection, setModalSelection] = useState<number>(mockValorIdeal)
@@ -168,7 +169,10 @@ export default function ProcessAnalysisPage() {
         policy: 'Balanceada',
         include_shap: true,
         features_documentais: p.features_documentais,
-      }).then(d => { if (d.shap) setShap(d.shap) }).catch(() => {})
+      }).then(d => {
+        if (d.shap) setShap(d.shap)
+        if (d.jurisprudencias_relacionadas) setJurisprudencias(d.jurisprudencias_relacionadas)
+      }).catch(() => {})
     }).catch(() => { /* fica no fallback */ })
   }, [searchParams, aplicarResultado])
 
@@ -186,6 +190,7 @@ export default function ProcessAnalysisPage() {
     }).then(d => {
       aplicarResultado(decisaoParaAnalise(d as any, analise.numeroCaso))
       if (d.shap) setShap(d.shap)
+      if (d.jurisprudencias_relacionadas) setJurisprudencias(d.jurisprudencias_relacionadas)
     }).catch(() => {}).finally(() => setLoadingPolitica(false))
   }, [politicaSelecionada]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -405,6 +410,35 @@ export default function ProcessAnalysisPage() {
                 )}
               </div>
             </div>
+
+            {/* Jurisprudências Relacionadas */}
+            {jurisprudencias.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">⚖ Jurisprudências Relacionadas</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {jurisprudencias.map((j) => (
+                    <div key={j.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex flex-col gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${j.tribunal === 'STF' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {j.tribunal}
+                        </span>
+                        <span className="text-xs font-semibold text-slate-700">{j.tipo} {j.numero}</span>
+                        <span className={`ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full ${j.favoravel_banco ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'}`}>
+                          {j.favoravel_banco ? 'Favorável' : 'Desfavorável'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">{j.ementa_resumida}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="h-full bg-blue-400 rounded-full" style={{ width: `${Math.round(j.relevancia * 100)}%` }} />
+                        </div>
+                        <span className="text-[10px] text-slate-400 shrink-0">{Math.round(j.relevancia * 100)}% rel.</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Fatores Determinantes (SHAP) + Confiabilidade do Modelo */}
             {(shap?.disponivel || metricas) && (
