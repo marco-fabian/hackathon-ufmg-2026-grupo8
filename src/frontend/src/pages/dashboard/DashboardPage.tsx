@@ -45,17 +45,35 @@ const VALOR_PEDIDO_VS_PAGO = [
   { name: '> R$18k',       'Valor Pedido': 22000, 'Valor Pago': 15000 },
 ]
 
+
 const PERDA_POR_UF = [
   { name: 'AP', 'Taxa de Perda (%)': 48.1 },
   { name: 'AM', 'Taxa de Perda (%)': 47.8 },
   { name: 'GO', 'Taxa de Perda (%)': 38.3 },
   { name: 'RS', 'Taxa de Perda (%)': 37.4 },
   { name: 'BA', 'Taxa de Perda (%)': 35.0 },
-  { name: 'ES', 'Taxa de Perda (%)': 33.5 },
   { name: 'RJ', 'Taxa de Perda (%)': 34.6 },
+  { name: 'PA', 'Taxa de Perda (%)': 33.8 },
+  { name: 'ES', 'Taxa de Perda (%)': 33.5 },
   { name: 'DF', 'Taxa de Perda (%)': 32.7 },
+  { name: 'MA', 'Taxa de Perda (%)': 32.1 },
+  { name: 'MT', 'Taxa de Perda (%)': 31.5 },
+  { name: 'RR', 'Taxa de Perda (%)': 31.2 },
   { name: 'SP', 'Taxa de Perda (%)': 31.0 },
   { name: 'AL', 'Taxa de Perda (%)': 31.0 },
+  { name: 'RO', 'Taxa de Perda (%)': 30.8 },
+  { name: 'TO', 'Taxa de Perda (%)': 30.5 },
+  { name: 'MS', 'Taxa de Perda (%)': 30.2 },
+  { name: 'SE', 'Taxa de Perda (%)': 29.7 },
+  { name: 'AC', 'Taxa de Perda (%)': 29.5 },
+  { name: 'PB', 'Taxa de Perda (%)': 29.1 },
+  { name: 'CE', 'Taxa de Perda (%)': 28.7 },
+  { name: 'PE', 'Taxa de Perda (%)': 28.4 },
+  { name: 'RN', 'Taxa de Perda (%)': 28.2 },
+  { name: 'MG', 'Taxa de Perda (%)': 27.8 },
+  { name: 'PI', 'Taxa de Perda (%)': 27.6 },
+  { name: 'PR', 'Taxa de Perda (%)': 26.9 },
+  { name: 'SC', 'Taxa de Perda (%)': 25.4 },
 ]
 
 // ─── KPI Card ─────────────────────────────────────────────────────────────────
@@ -154,16 +172,6 @@ const COLUMNS: ColumnDef<Record<string, unknown>>[] = [
   { key: 'uf', header: 'UF', width: '100px', filterType: 'select' },
   { key: 'resultadoMicro', header: 'Resultado (Base)', sortable: true, filterType: 'select' },
   {
-    key: 'decisaoAdvogado',
-    header: 'Ação Atual',
-    filterType: 'select',
-    render: (val) => (
-      <span style={{ fontSize: '12px', fontWeight: 500, textTransform: 'capitalize' }}>
-        {String(val)}
-      </span>
-    ),
-  },
-  {
     key: 'valorCausa',
     header: 'Valor Causa',
     align: 'right',
@@ -179,7 +187,7 @@ export default function DashboardPage() {
   const { userRole } = useView()
   const [sortColumn, setSortColumn]       = useState<string | undefined>(undefined)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
-  const [selectedChart, setSelectedChart] = useState<'subassunto' | 'documentos' | 'valores' | 'estados'>('subassunto')
+  const [selectedChart, setSelectedChart] = useState<'subassunto' | 'documentos' | 'valores' | 'estados' | 'processos' | 'ticket'>('subassunto')
   const [baseProcessos, setBaseProcessos] = useState<ProcessoBase[]>([])
   const [loadingBase, setLoadingBase]     = useState(true)
 
@@ -202,6 +210,28 @@ export default function DashboardPage() {
       ? mockProcessos.filter(p => p.advogadoResponsavel === ADVOGADO_LOGADO)
       : mockProcessos
   , [userRole])
+
+  const processosPorUF = useMemo(() => {
+    const counts: Record<string, number> = {}
+    baseProcessos.forEach(p => { counts[p.uf] = (counts[p.uf] ?? 0) + 1 })
+    return Object.entries(counts)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, count]) => ({ name, 'Processos': count }))
+  }, [baseProcessos])
+
+  const ticketMedioPorUF = useMemo(() => {
+    const sums: Record<string, number> = {}
+    const counts: Record<string, number> = {}
+    baseProcessos.forEach(p => {
+      if (p.valorCondenacao > 0) {
+        sums[p.uf]   = (sums[p.uf]   ?? 0) + p.valorCondenacao
+        counts[p.uf] = (counts[p.uf] ?? 0) + 1
+      }
+    })
+    return Object.entries(sums)
+      .map(([name, sum]) => ({ name, 'Ticket Médio (R$)': Math.round(sum / counts[name]) }))
+      .sort((a, b) => b['Ticket Médio (R$)'] - a['Ticket Médio (R$)'])
+  }, [baseProcessos])
 
   // ─── KPI principais ──────────────────────────────────────────────────────
   const base = userRole === 'banco' ? mockProcessos : processosAtuais
@@ -281,10 +311,12 @@ export default function DashboardPage() {
             borderRadius: '8px', boxShadow: 'var(--shadow-card)',
           }}>
             {([
-              { id: 'subassunto', label: 'Chance de Perder por Sub-assunto' },
+              { id: 'subassunto', label: 'Chance de Ganhar por Sub-assunto' },
               { id: 'documentos', label: 'Documentos e Chance de Defesa'    },
               { id: 'valores',    label: 'Valor Pedido vs Valor Pago'        },
               { id: 'estados',    label: 'Estados com Maior Risco'           },
+              { id: 'processos',  label: 'Processos por Estado'               },
+              { id: 'ticket',     label: 'Ticket Médio de Condenação por UF'  },
             ] as const).map(opt => {
               const active = selectedChart === opt.id
               return (
@@ -309,8 +341,8 @@ export default function DashboardPage() {
           {/* ── Gráfico selecionado ── */}
           {selectedChart === 'subassunto' && (
             <ChartCardBase
-              title="Chance de Perder a Ação por Tipo de Sub-assunto"
-              subtitle="Probabilidade histórica de perda por categoria de alegação (base 60k processos)"
+              title="Chance de Ganhar a Ação por Tipo de Sub-assunto"
+              subtitle="Probabilidade histórica de ganho por categoria de alegação (base 60k processos)"
               data={RISCO_POR_SUBASSUNTO}
               xAxisKey="name"
               series={[{ dataKey: 'Chance de Perda (%)', label: 'Chance de Perda (%)', color: COLOR_ORANGE }]}
@@ -346,11 +378,31 @@ export default function DashboardPage() {
           {selectedChart === 'estados' && (
             <ChartCardBase
               title="Estados onde o Banco Mais Perde na Justiça"
-              subtitle="Top 10 estados com maior taxa histórica de perda — influencia diretamente a recomendação do motor"
+              subtitle="Taxa histórica de perda por UF, ordenada do maior para o menor risco (base 60k processos)"
               data={PERDA_POR_UF}
               xAxisKey="name"
               series={[{ dataKey: 'Taxa de Perda (%)', label: 'Taxa de Perda (%)', color: COLOR_ORANGE }]}
               formatValue={(v) => `${v}%`}
+            />
+          )}
+          {selectedChart === 'processos' && (
+            <ChartCardBase
+              title="Processos por Estado"
+              subtitle="Distribuição de processos recebidos por UF (base 60k processos)"
+              data={processosPorUF}
+              xAxisKey="name"
+              series={[{ dataKey: 'Processos', label: 'Processos', color: COLOR_ORANGE }]}
+              formatValue={(v) => `${v.toLocaleString('pt-BR')}`}
+            />
+          )}
+          {selectedChart === 'ticket' && (
+            <ChartCardBase
+              title="Valor Médio de Condenação por UF"
+              subtitle="Média do valor pago pelo banco nos processos perdidos, por estado — ordenado do maior para o menor"
+              data={ticketMedioPorUF}
+              xAxisKey="name"
+              series={[{ dataKey: 'Ticket Médio (R$)', label: 'Ticket Médio (R$)', color: COLOR_ORANGE }]}
+              formatValue={formatCurrencyCompact}
             />
           )}
         </section>

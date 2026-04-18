@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <rect width="100" height="100" fill="#000"/>
+  <!-- Left stem -->
+  <rect x="10" y="8"  width="22" height="84" fill="#FFAE0C"/>
+  <!-- Left serif top -->
+  <rect x="4"  y="8"  width="34" height="11" fill="#FFAE0C"/>
+  <!-- Left serif bottom -->
+  <rect x="4"  y="81" width="34" height="11" fill="#FFAE0C"/>
+  <!-- Right stem -->
+  <rect x="68" y="8"  width="22" height="84" fill="#FFAE0C"/>
+  <!-- Right serif top -->
+  <rect x="62" y="8"  width="34" height="11" fill="#FFAE0C"/>
+  <!-- Right serif bottom -->
+  <rect x="62" y="81" width="34" height="11" fill="#FFAE0C"/>
+  <!-- Crossbar -->
+  <rect x="32" y="38" width="36" height="18" fill="#FFAE0C"/>
+</svg>
