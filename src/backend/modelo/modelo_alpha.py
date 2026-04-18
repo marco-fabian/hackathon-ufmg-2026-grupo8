@@ -52,6 +52,21 @@ def _pinball_loss(y_true: np.ndarray, y_pred: np.ndarray, q: float) -> float:
     return float(np.mean(np.maximum(q * e, (q - 1) * e)))
 
 
+def _ajustar_te_sem_acordos(df_full: pd.DataFrame) -> feat.TargetEncodingStats:
+    """Refita target encoding excluindo linhas de acordo (Resultado micro == 'Acordo').
+
+    Corrige vazamento indireto: sem isso, as stats por UF (`uf_taxa_perda_hist`,
+    `uf_ticket_medio_cond`) carregam informacao dos mesmos 280 acordos que serao
+    usados como target do modelo_alpha. Esse TE 'limpo' e usado APENAS no treino
+    do modelo_alpha; a inferencia em producao continua com o TE original (fit
+    na base inteira), que e equivalente a out-of-fold por construcao ja que o
+    processo em inferencia nunca esta no treino.
+    """
+    df_sem_acordos = df_full[df_full["Resultado micro"] != "Acordo"].copy()
+    df_sem_acordos["perde"] = (df_sem_acordos[cfg.COL_RESULTADO_MACRO] == cfg.VAL_PERDA).astype(int)
+    return feat.ajustar_target_encoding(df_sem_acordos)
+
+
 def _calcular_alpha_empirico(
     df_acordos: pd.DataFrame,
     modelo_a,
@@ -95,16 +110,23 @@ def treinar_modelo_alpha(salvar: bool = True) -> tuple[dict[float, XGBRegressor]
     print(f"  Acordos na base: {len(df_acordos)}")
 
     print("Carregando artefatos (encoder, stats, modelos A/B)...")
-    encoder, stats, bins = feat.carregar_artefatos_features()
+    encoder, _stats_prod, bins = feat.carregar_artefatos_features()
     modelo_a = joblib.load(cfg.MODEL_A_PATH)
     modelo_b = joblib.load(cfg.MODEL_B_PATH)
     with open(cfg.PARAMS_OTIMIZADOS_PATH, "r", encoding="utf-8") as f:
         parametros = json.load(f)
     cp = float(parametros["cp"])
 
+    print("Refitando target encoding sem os 280 acordos (corrige vazamento indireto)...")
+    stats_sem_acordos = _ajustar_te_sem_acordos(df)
+    print(
+        f"  taxa_perda_global (sem acordos): {stats_sem_acordos.taxa_perda_global:.4f} "
+        f"(vs producao {_stats_prod.taxa_perda_global:.4f})"
+    )
+
     print(f"Calculando alpha empirico (V_acordo / E[C_defesa]), Cp=R$ {cp:,.2f}...")
     X_all, alpha_empirico = _calcular_alpha_empirico(
-        df_acordos, modelo_a, modelo_b, encoder, stats, bins, cp
+        df_acordos, modelo_a, modelo_b, encoder, stats_sem_acordos, bins, cp
     )
     alpha_clip = np.clip(alpha_empirico, ALPHA_CLIP_MIN, ALPHA_CLIP_MAX)
 

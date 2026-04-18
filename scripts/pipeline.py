@@ -108,7 +108,7 @@ def processar_processo(pasta_processo: Path, processo_id: str | None = None) -> 
     analise = insumos["analise_fraude"]
     features_doc = insumos["features_documentais"]
 
-    politicas_nomes = list(cfg.POLICIES_ALVO.keys())
+    politicas_nomes = list(cfg.POLICY_QUANTIS.keys())
     politicas_resultado: dict[str, Any] = {}
     for nome in politicas_nomes:
         motor = MotorDecisao.carregar(policy=nome)

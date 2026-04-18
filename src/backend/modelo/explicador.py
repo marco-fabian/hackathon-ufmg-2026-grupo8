@@ -18,6 +18,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from . import config as cfg
+
 try:
     import shap  # noqa: F401
     _SHAP_OK = True
@@ -32,22 +34,34 @@ except ImportError:
     pass
 
 
-def explicar_shap(motor, uf: str, sub_assunto: str, valor_causa: float, top_k: int = 3) -> dict:
+def explicar_shap(
+    motor,
+    uf: str,
+    sub_assunto: str,
+    valor_causa: float,
+    features_documentais: dict | None = None,
+    top_k: int = 3,
+) -> dict:
     """Retorna contribuicoes SHAP para P(L) e Vc num processo especifico."""
     if not _SHAP_OK:
         return {"disponivel": False, "motivo": "pacote shap nao instalado"}
 
     import shap
 
-    X = _montar_features(motor, uf, sub_assunto, valor_causa)
+    X = _montar_features(motor, uf, sub_assunto, valor_causa, features_documentais)
     nomes = list(X.columns)
 
-    classificador_xgb = motor.modelo_a.calibrated_classifiers_[0].estimator
-    explainer_a = shap.TreeExplainer(classificador_xgb)
-    shap_a = explainer_a.shap_values(X)
-    if isinstance(shap_a, list):
-        shap_a = shap_a[1]
-    top_a = _top_contributions(nomes, shap_a[0], top_k)
+    # Media dos SHAP values sobre os 5 calibrated_classifiers_ (CalibratedClassifierCV cv=5).
+    # Pegar so o [0] seria explicar 1/5 do modelo real.
+    shap_a_list = []
+    for cc in motor.modelo_a.calibrated_classifiers_:
+        explainer = shap.TreeExplainer(cc.estimator)
+        s = explainer.shap_values(X)
+        if isinstance(s, list):
+            s = s[1]
+        shap_a_list.append(s[0])
+    shap_a_mean = np.mean(shap_a_list, axis=0)
+    top_a = _top_contributions(nomes, shap_a_mean, top_k)
 
     explainer_b = shap.TreeExplainer(motor.modelo_b)
     shap_b = explainer_b.shap_values(X)
@@ -68,8 +82,21 @@ def _top_contributions(nomes: list[str], valores: np.ndarray, k: int) -> list[di
     ]
 
 
-def _montar_features(motor, uf: str, sub_assunto: str, valor_causa: float) -> pd.DataFrame:
+def _montar_features(
+    motor,
+    uf: str,
+    sub_assunto: str,
+    valor_causa: float,
+    features_documentais: dict | None = None,
+) -> pd.DataFrame:
     from . import features as feat
+
+    subsidios = None
+    if features_documentais:
+        subsidios = {
+            k: bool(features_documentais.get(k, False))
+            for k in cfg.FEATURES_BOOLEANAS
+        }
 
     return feat.build_features_single(
         uf=uf,
@@ -78,6 +105,7 @@ def _montar_features(motor, uf: str, sub_assunto: str, valor_causa: float) -> pd
         encoder=motor.encoder,
         stats=motor.stats,
         valor_causa_bins=motor.valor_causa_bins,
+        subsidios=subsidios,
     )
 
 
@@ -177,7 +205,7 @@ if __name__ == "__main__":
     ]
     for uf, sub, valor, fd in casos:
         r = motor.decidir(uf, sub, valor, features_documentais=fd)
-        shap_info = explicar_shap(motor, uf, sub, valor)
+        shap_info = explicar_shap(motor, uf, sub, valor, features_documentais=fd)
         texto = gerar_explicacao(r, shap_info=shap_info)
         print(f"\n=== {uf} | {sub} | R$ {valor:,.0f} ===")
         print(f"Decisao: {r.decisao.value}")

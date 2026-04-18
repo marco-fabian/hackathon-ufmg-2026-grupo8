@@ -1,4 +1,4 @@
-# HACKATHON UFMG 2026 — Enter AI Challenge
+# HACKATHON UFMG. 2026 — Enter AI Challenge
 
 **17 e 18 de Abril de 2026**
 

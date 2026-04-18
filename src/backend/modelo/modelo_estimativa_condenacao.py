@@ -111,8 +111,6 @@ def treinar_quantis() -> dict:
         modelos[f"q{int(q*100):02d}"] = m
 
     joblib.dump(modelos, cfg.MODEL_B_QUANTIS_PATH)
-    with open(cfg.METRICS_B_QUANTIS_PATH, "w", encoding="utf-8") as f:
-        json.dump(metricas, f, indent=2, ensure_ascii=False)
 
     q10, q50, q90 = (
         np.clip(np.expm1(modelos["q10"].predict(X_test)), 0, None),
