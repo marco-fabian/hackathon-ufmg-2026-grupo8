@@ -102,6 +102,60 @@ motor_agressivo = MotorDecisao.carregar(policy="Agressiva")
 
 Politicas: `Conservadora`, `Moderada`, `Balanceada` (default), `Agressiva`, `Maxima`. Definidas pelo backtesting.
 
+## Testes
+
+Suite pytest com 23 testes, roda em ~10s. Cobre o core de decisao (funcoes puras + integracao com os `.joblib` treinados + smoke da API FastAPI).
+
+### Instalacao das deps de teste
+
+Ja incluidas em `src/backend/requirements-backend.txt`. Se atualizar o ambiente:
+
+```bash
+conda run -n ENTER pip install pytest pytest-cov httpx
+```
+
+### Rodar a suite
+
+```bash
+# Todos os testes
+conda run -n ENTER python -m pytest tests/ -v
+
+# Com relatorio de cobertura (terminal)
+conda run -n ENTER python -m pytest tests/ --cov=src/backend --cov-report=term-missing
+
+# Cobertura em HTML (abre htmlcov/index.html)
+conda run -n ENTER python -m pytest tests/ --cov=src/backend --cov-report=html
+```
+
+### O que esta coberto
+
+| Arquivo | Escopo | Coverage |
+|---|---|---|
+| [tests/test_overrides.py](tests/test_overrides.py) | Matriz de `aplicar_overrides_documentais` (IFP, fraude, doc completa, prioridade) | — |
+| [tests/test_adaptador_ifp.py](tests/test_adaptador_ifp.py) | `ifp_to_features_doc` — traducao IFP v2 → contrato do motor | 100% |
+| [tests/test_motor_decisao.py](tests/test_motor_decisao.py) | `MotorDecisao.decidir()` end-to-end, 4 caminhos de override, comparacao de policies | 87% |
+| [tests/test_api.py](tests/test_api.py) | Smoke da FastAPI (`/health`, `/metricas`, `/decidir`) | 57% |
+
+### O que fica de fora (intencional)
+
+- **Pipelines de treino** (`modelo_probabilidade_perda.py`, `modelo_estimativa_condenacao.py`) — custoso e requer base `.xlsx` completa.
+- **Endpoints DB** (`/api/analise*`, `/api/processos-finalizados`) — precisam de `docker compose up -d db` + seed; ficam pra fase 2.
+- **Extractores de PDF** (`src/extractors/*`) — dependem de chamada LLM real.
+- **`GET /api/politicas`** — endpoint le chaves de `parametros_otimizados.json` que o backtest atual nao gera (`alpha`, `economia_*`, `taxa_acordo_efetiva`). Divida documentada.
+
+### Estrutura dos testes
+
+```
+tests/
+├── conftest.py              # pickle shim + fixtures motor_moderado e api_client (scope=session)
+├── test_overrides.py
+├── test_adaptador_ifp.py
+├── test_motor_decisao.py
+└── test_api.py
+```
+
+A fixture `motor_moderado` carrega `MotorDecisao.carregar(policy="Moderada")` uma vez por sessao — os 6 testes de integracao compartilham o mesmo motor.
+
 ## Estrutura do Projeto
 
 ```
