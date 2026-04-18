@@ -138,6 +138,15 @@ conda activate ENTER
 pip install -r src/backend/requirements-backend.txt
 ```
 
+### Banco de dados Postgres (opcional, para queries analiticas)
+Container Postgres 16 com a base de 60k processos ja populada.
+```bash
+docker compose up -d db                             # sobe o container (schema aplicado automaticamente)
+conda run -n ENTER python scripts/seed_db.py        # popula a tabela `processos` (idempotente)
+docker compose exec db psql -U enter -d enter -c "SELECT COUNT(*) FROM processos;"
+```
+Conexao: `DATABASE_URL=postgresql://enter:enter@localhost:5432/enter` (ver `.env.example`). Schema em `src/backend/db/schema.sql`.
+
 ### Treinar tudo (pipeline completo)
 ```bash
 conda run -n ENTER python -m src.backend.modelo.motor_decisao
