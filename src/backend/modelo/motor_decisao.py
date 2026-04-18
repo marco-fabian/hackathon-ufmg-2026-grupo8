@@ -138,7 +138,8 @@ def _explicar(resultado: ResultadoDecisao) -> str:
                 f"A decisao foi sobreposta pela fragilidade dos subsidios{ifp_txt}: "
                 f"documentacao agregada abaixo do limiar de {cfg.OVERRIDE_IFP_BAIXO:.2f}. "
                 f"Recomenda-se ACORDO (valor sugerido: "
-                f"R$ {resultado.valor_acordo_sugerido:,.2f}, alpha = {resultado.alpha_aplicado:.2f})."
+                f"R$ {resultado.valor_acordo_sugerido:,.2f}, alpha = {resultado.alpha_aplicado:.2f} "
+                f"sobre custo ajustado assumindo perda certa: Vc + Cp = R$ {resultado.custo_esperado_defesa:,.2f})."
             )
         elif resultado.razao_override == RazaoOverride.DOCUMENTACAO_COMPLETA_SEM_FRAUDE:
             base += (
@@ -150,7 +151,8 @@ def _explicar(resultado: ResultadoDecisao) -> str:
             base += (
                 f"A decisao foi sobreposta pela regra documental: alto score de fraude "
                 f"sem contrato assinado. Recomenda-se ACORDO (valor sugerido: "
-                f"R$ {resultado.valor_acordo_sugerido:,.2f}, alpha = {resultado.alpha_aplicado:.2f})."
+                f"R$ {resultado.valor_acordo_sugerido:,.2f}, alpha = {resultado.alpha_aplicado:.2f} "
+                f"sobre custo ajustado assumindo perda certa: Vc + Cp = R$ {resultado.custo_esperado_defesa:,.2f})."
             )
     elif resultado.decisao == Decisao.ACORDO:
         base += (
@@ -244,7 +246,7 @@ class MotorDecisao:
         )
 
         p_l, vc, faixa = self._prever(X)
-        e_c_defesa = p_l * vc + self.cp
+        e_c_defesa_ml = p_l * vc + self.cp
 
         alphas_cond = m_alpha.prever_alphas(X, self.modelos_alpha)
         quantil = self.quantil_alpha
@@ -256,7 +258,17 @@ class MotorDecisao:
         if override is not None:
             decisao_final = override
         else:
-            decisao_final = Decisao.ACORDO if e_c_defesa > self.limiar else Decisao.DEFESA
+            decisao_final = Decisao.ACORDO if e_c_defesa_ml > self.limiar else Decisao.DEFESA
+
+        # Quando o override forca ACORDO (fraude confirmada / IFP fraco), o
+        # P(L) do ML e irrelevante — o sinal documental diz que a perda e certa.
+        # Recalculamos E[C_defesa] assumindo P(L)=1 pra evitar V_acordo baixo
+        # quando o ML acha o processo defensavel mas o override discorda.
+        override_forcou_acordo = override == Decisao.ACORDO
+        if override_forcou_acordo:
+            e_c_defesa = vc + self.cp
+        else:
+            e_c_defesa = e_c_defesa_ml
 
         v_acordo = alpha_aplicado * e_c_defesa if decisao_final == Decisao.ACORDO else None
 

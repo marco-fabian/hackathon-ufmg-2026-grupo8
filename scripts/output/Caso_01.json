@@ -30,12 +30,12 @@
     "tem_demonstrativo": true,
     "tem_laudo": true,
     "ifp": 1.0,
-    "score_fraude": 0.15,
+    "score_fraude": 0.2,
     "laudo_favoravel": true,
     "indicio_de_fraude": false
   },
   "analise_fraude": {
-    "score_fraude": 0.15,
+    "score_fraude": 0.2,
     "indicadores_fraude": [],
     "sinais_protetivos": [
       "extrato_autor_movimentou_dinheiro",
@@ -43,7 +43,7 @@
       "dossie_assinatura_confere",
       "laudo_evidencia_digital(gravacao_voz)"
     ],
-    "justificativa": "O cenário apresenta diversos sinais de legitimidade, como a movimentação do dinheiro e o pagamento de parcelas. A assinatura foi confirmada e há evidências digitais, o que indica uma operação consistente e legítima."
+    "justificativa": "O cenário apresenta diversos sinais de legitimidade, como a movimentação do dinheiro e o pagamento de parcelas. A assinatura confere e há evidências digitais, o que indica um baixo risco de fraude."
   },
   "politicas": {
     "Conservadora": {
@@ -52,7 +52,7 @@
       "alpha_quantil": 0.75,
       "taxa_aceite_estimada": 0.75,
       "alphas_por_quantil": {
-        "0.15": 0.889,
+        "0.15": 0.867,
         "0.3": 1.0,
         "0.5": 1.0,
         "0.75": 1.0,
@@ -80,7 +80,7 @@
       "alpha_quantil": 0.5,
       "taxa_aceite_estimada": 0.5,
       "alphas_por_quantil": {
-        "0.15": 0.889,
+        "0.15": 0.867,
         "0.3": 1.0,
         "0.5": 1.0,
         "0.75": 1.0,
@@ -108,7 +108,7 @@
       "alpha_quantil": 0.3,
       "taxa_aceite_estimada": 0.3,
       "alphas_por_quantil": {
-        "0.15": 0.889,
+        "0.15": 0.867,
         "0.3": 1.0,
         "0.5": 1.0,
         "0.75": 1.0,

@@ -41,27 +41,25 @@
     "indicadores_fraude": [
       "Falta de contrato",
       "Falta de extrato",
-      "Canal digital sem dossiê"
+      "Canal digital com biometria mas sem dossiê"
     ],
     "sinais_protetivos": [
       "8 parcelas pagas",
-      "Biometria disponível",
-      "Device fingerprint disponível",
-      "Geolocalização disponível"
+      "Laudo com biometria, device fingerprint e geolocalização"
     ],
-    "justificativa": "Embora existam sinais protetivos, a ausência de contrato e extrato, juntamente com a falta de um dossiê, indicam um cenário de risco. O score reflete a presença de alguns pagamentos, mas a falta de documentação essencial eleva a suspeita."
+    "justificativa": "O score de fraude é 0.300 devido à ausência de contrato e extrato, que são documentos essenciais para validar a operação. Apesar de haver 8 parcelas pagas e evidências digitais, a falta de documentação completa gera um cenário de sinais conflitantes."
   },
   "politicas": {
     "Conservadora": {
       "policy": "Conservadora",
-      "alpha": 0.548,
+      "alpha": 0.558,
       "alpha_quantil": 0.75,
       "taxa_aceite_estimada": 0.75,
       "alphas_por_quantil": {
-        "0.15": 0.485,
-        "0.3": 0.494,
-        "0.5": 0.519,
-        "0.75": 0.548,
+        "0.15": 0.444,
+        "0.3": 0.471,
+        "0.5": 0.558,
+        "0.75": 0.558,
         "0.9": 1.0
       },
       "limiar": 7000.0,
@@ -76,20 +74,20 @@
       },
       "custo_processual_cp": 1408.72,
       "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 11271.33,
-      "economia_esperada_vs_defesa": 6965.28,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 11,271.33 (alpha = 0.55 x custo esperado; taxa historica de aceite estimada: 75%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 7,000.00. Politica aplicada: Conservadora."
+      "valor_acordo_sugerido": 11469.94,
+      "economia_esperada_vs_defesa": 6816.32,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 11,469.94 (alpha = 0.56 x custo esperado; taxa historica de aceite estimada: 75%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 7,000.00. Politica aplicada: Conservadora."
     },
     "Moderada": {
       "policy": "Moderada",
-      "alpha": 0.519,
+      "alpha": 0.558,
       "alpha_quantil": 0.5,
       "taxa_aceite_estimada": 0.5,
       "alphas_por_quantil": {
-        "0.15": 0.485,
-        "0.3": 0.494,
-        "0.5": 0.519,
-        "0.75": 0.548,
+        "0.15": 0.444,
+        "0.3": 0.471,
+        "0.5": 0.558,
+        "0.75": 0.558,
         "0.9": 1.0
       },
       "limiar": 4000.0,
@@ -104,20 +102,20 @@
       },
       "custo_processual_cp": 1408.72,
       "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10667.14,
-      "economia_esperada_vs_defesa": 4945.62,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 10,667.14 (alpha = 0.52 x custo esperado; taxa historica de aceite estimada: 50%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 4,000.00. Politica aplicada: Moderada."
+      "valor_acordo_sugerido": 11469.94,
+      "economia_esperada_vs_defesa": 4544.21,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 11,469.94 (alpha = 0.56 x custo esperado; taxa historica de aceite estimada: 50%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 4,000.00. Politica aplicada: Moderada."
     },
     "Arriscada": {
       "policy": "Arriscada",
-      "alpha": 0.494,
+      "alpha": 0.471,
       "alpha_quantil": 0.3,
       "taxa_aceite_estimada": 0.3,
       "alphas_por_quantil": {
-        "0.15": 0.485,
-        "0.3": 0.494,
-        "0.5": 0.519,
-        "0.75": 0.548,
+        "0.15": 0.444,
+        "0.3": 0.471,
+        "0.5": 0.558,
+        "0.75": 0.558,
         "0.9": 1.0
       },
       "limiar": 2000.0,
@@ -132,9 +130,9 @@
       },
       "custo_processual_cp": 1408.72,
       "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10162.81,
-      "economia_esperada_vs_defesa": 3118.67,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 10,162.81 (alpha = 0.49 x custo esperado; taxa historica de aceite estimada: 30%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 2,000.00. Politica aplicada: Arriscada."
+      "valor_acordo_sugerido": 9692.7,
+      "economia_esperada_vs_defesa": 3259.7,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 9,692.70 (alpha = 0.47 x custo esperado; taxa historica de aceite estimada: 30%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 2,000.00. Politica aplicada: Arriscada."
     }
   }
 }

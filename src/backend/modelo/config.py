@@ -75,11 +75,6 @@ XGB_QUANTILE_PARAMS = {
 }
 QUANTIS = (0.10, 0.50, 0.90)
 
-POLICIES_ALVO = {
-    "Conservadora": 0.20,
-    "Moderada": 0.40,
-    "Arriscada": 0.65,
-}
 POLICY_DEFAULT = "Moderada"
 
 QUANTIS_ALPHA_GRID = (0.15, 0.30, 0.50, 0.75, 0.90)

@@ -79,10 +79,10 @@ def treinar_modelo_a() -> dict:
 
     print("\nValidacao cruzada (AUC-ROC) no treino...")
     cv_scores = cross_val_score(
-        CalibratedClassifierCV(estimator=XGBClassifier(**cfg.XGB_CLASSIFIER_PARAMS), method="sigmoid", cv=3),
+        CalibratedClassifierCV(estimator=XGBClassifier(**cfg.XGB_CLASSIFIER_PARAMS), method="sigmoid", cv=cfg.CV_FOLDS),
         X_train,
         y_train,
-        cv=3,
+        cv=cfg.CV_FOLDS,
         scoring="roc_auc",
         n_jobs=-1,
     )
