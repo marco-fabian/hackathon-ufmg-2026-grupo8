@@ -165,6 +165,8 @@ export default function ProcessAnalysisPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [arquivos, setArquivos] = useState<ArquivoCaso[]>([]);
   const [pdfPreview, setPdfPreview] = useState<{ url: string; nome: string } | null>(null);
+  const [caseAnalyzed, setCaseAnalyzed] = useState(false);
+  const [isLoadingCase, setIsLoadingCase] = useState(false);
 
   const aplicarResultado = useCallback((estado: AnaliseState) => {
     const novoValor = estado.valorAcordoSugerido ?? 0;
@@ -174,39 +176,57 @@ export default function ProcessAnalysisPage() {
   }, []);
 
   // Quando um caso é selecionado, preenche o detalhe com os dados do mock
-  // e busca jurisprudências via API
+  // e busca jurisprudências via API — chama o motor de IA para casos não analisados
   useEffect(() => {
     if (!selectedCase) return;
     setShap(null);
     setDecision(null);
     setJurisprudencias([]);
     setArquivos([]);
+    setCaseAnalyzed(!!selectedCase.dadosPreenchidos);
+    setIsLoadingCase(true);
     listarArquivosCaso(selectedCase.id).then(setArquivos).catch(() => {});
     if (selectedCase.dadosPreenchidos) {
       aplicarResultado(selectedCase.dadosPreenchidos);
     } else {
       aplicarResultado(BLANK_ANALISE);
     }
-    // busca jurisprudências para o caso selecionado
+    // busca dados do caso e chama o motor de decisão
     obterCaso(selectedCase.id)
       .then((pip) => {
         const p = pip.payload as PayloadProcesso;
         setPayload(p);
+
+        // Se o caso já veio com decisão do pipeline, preenche direto
+        if (pip.decisao) {
+          const analiseFromPipeline = decisaoParaAnalise(pip.decisao, pip.processo_id);
+          aplicarResultado(analiseFromPipeline);
+          setCaseAnalyzed(true);
+        }
+
         decidir({
           uf: p.uf,
           sub_assunto: p.sub_assunto,
           valor_causa: p.valor_causa,
           policy: politicaSelecionada,
+          include_shap: true,
           features_documentais: p.features_documentais,
         })
           .then((d) => {
+            // Atualiza análise com resultado do motor (decisão em tempo real)
+            const analiseFromMotor = decisaoParaAnalise(d as any, pip.processo_id);
+            aplicarResultado(analiseFromMotor);
+            setCaseAnalyzed(true);
             if (d.jurisprudencias_relacionadas)
               setJurisprudencias(d.jurisprudencias_relacionadas);
             if (d.shap) setShap(d.shap);
           })
-          .catch(() => {});
+          .catch(() => {})
+          .finally(() => setIsLoadingCase(false));
       })
-      .catch(() => {});
+      .catch(() => {
+        setIsLoadingCase(false);
+      });
   }, [selectedCase, aplicarResultado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Busca métricas do modelo uma vez
@@ -276,13 +296,11 @@ export default function ProcessAnalysisPage() {
       <DashboardLayout pageTitle="Casos em Aberto">
         <div className="flex flex-col gap-6">
           <p className="text-sm text-slate-500">
-            Selecione um caso para ver ou iniciar a análise.
+            Selecione um caso para ver a análise.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CASOS_MOCK.map((caso) => {
-              const analisado = caso.status === "Analisado";
-              return (
+            {CASOS_MOCK.map((caso) => (
                 <div
                   key={caso.id}
                   className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden hover:shadow-md transition-shadow"
@@ -298,96 +316,26 @@ export default function ProcessAnalysisPage() {
                           {caso.nome}
                         </h3>
                       </div>
-                      <span
-                        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border shrink-0 ${
-                          analisado
-                            ? "text-green-700 bg-green-50 border-green-200"
-                            : "text-slate-500 bg-slate-100 border-slate-200"
-                        }`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        {caso.status}
-                      </span>
                     </div>
 
                     <p className="text-xs text-slate-400 leading-relaxed">
-                      {analisado
-                        ? "Análise concluída pelo motor de IA. Clique para visualizar o resultado."
-                        : "Aguardando análise. Clique para iniciar o processamento do caso."}
+                      Clique para visualizar a análise do motor de IA.
                     </p>
                   </div>
 
                   {/* Card footer */}
                   <div className="px-5 pb-5">
                     <button
-                      onClick={() => {
-                        if (analisado) {
-                          setSelectedCase(caso);
-                        } else {
-                          setPendingCase(caso);
-                          setIsAnalyzeModalOpen(true);
-                        }
-                      }}
-                      className={`w-full py-2.5 rounded-xl font-semibold text-sm transition-all ${
-                        analisado
-                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                          : "bg-slate-800 hover:bg-slate-900 text-white shadow-sm"
-                      }`}
+                      onClick={() => setSelectedCase(caso)}
+                      className="w-full py-2.5 rounded-xl font-semibold text-sm transition-all bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                     >
-                      {analisado ? "Ver análise" : "Analisar"}
+                      Ver análise
                     </button>
                   </div>
                 </div>
-              );
-            })}
+            ))}
           </div>
         </div>
-
-        {/* Modal: Confirmar Análise */}
-        {isAnalyzeModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm flex flex-col overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 text-lg">
-                  Iniciar Análise
-                </h3>
-                <button
-                  onClick={() => setIsAnalyzeModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              <div className="px-6 py-5">
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  Deseja iniciar o processamento do{" "}
-                  <span className="font-semibold text-slate-800">
-                    {pendingCase?.nome}
-                  </span>{" "}
-                  pelo motor de IA?
-                </p>
-              </div>
-              <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
-                <button
-                  onClick={() => setIsAnalyzeModalOpen(false)}
-                  className="px-4 py-2 rounded-lg font-medium text-sm text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-sm"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => {
-                    setIsAnalyzeModalOpen(false);
-                    setSelectedCase(pendingCase);
-                    setPendingCase(null);
-                  }}
-                  className="px-5 py-2 rounded-lg font-medium text-sm text-white bg-slate-800 hover:bg-slate-900 shadow-sm transition-colors"
-                >
-                  Confirmar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </DashboardLayout>
     );
   }
@@ -395,7 +343,23 @@ export default function ProcessAnalysisPage() {
   // ── DETAIL VIEW ───────────────────────────────────────────────────────────────
   return (
     <DashboardLayout pageTitle={`Análise de Processo · ${selectedCase.nome}`}>
-      <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto pb-6">
+      <div className="flex flex-col gap-6 flex-1 min-h-0 overflow-y-auto pb-6 relative">
+        {/* Loading overlay */}
+        {isLoadingCase && (
+          <div className="absolute inset-0 z-30 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl">
+            <div className="flex flex-col items-center gap-4">
+              <div className="relative">
+                <div className="w-14 h-14 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+                <BrainCircuit size={22} className="absolute inset-0 m-auto text-blue-600" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-slate-700 text-sm">Processando análise...</p>
+                <p className="text-xs text-slate-400 mt-1">O motor de IA está analisando o caso</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Voltar */}
         <button
           onClick={() => setSelectedCase(null)}
@@ -468,7 +432,7 @@ export default function ProcessAnalysisPage() {
                     <span
                       className={`font-bold text-lg ${analise.decisao === "ACORDO" ? "text-green-800" : "text-slate-800"}`}
                     >
-                      {selectedCase.dadosPreenchidos
+                      {caseAnalyzed
                         ? analise.decisao === "ACORDO"
                           ? "Propor Acordo"
                           : "Manter Defesa"
@@ -477,7 +441,7 @@ export default function ProcessAnalysisPage() {
                     <p
                       className={`text-sm mt-1 leading-relaxed ${analise.decisao === "ACORDO" ? "text-green-700" : "text-slate-600"}`}
                     >
-                      {selectedCase.dadosPreenchidos
+                      {caseAnalyzed
                         ? `Probabilidade de perda prevista: ${(analise.probabilidadePerda * 100).toFixed(0)}%${analise.explicacao ? ` — ${analise.explicacao}` : ""}`
                         : "Aguardando análise do motor de IA."}
                     </p>
@@ -496,7 +460,7 @@ export default function ProcessAnalysisPage() {
                       <p className="text-sm text-blue-600 font-medium flex items-center gap-1">
                         <DollarSign size={16} /> Valor selecionado para o acordo
                       </p>
-                      {selectedCase.dadosPreenchidos ? (
+                      {caseAnalyzed ? (
                         <p className="font-bold text-blue-800 text-2xl">
                           {valorSelecionado.toLocaleString("pt-BR", {
                             style: "currency",
@@ -630,97 +594,7 @@ export default function ProcessAnalysisPage() {
               </div>
             )}
 
-            {/* Fatores Determinantes (SHAP) + Confiabilidade do Modelo */}
-            {(shap?.disponivel || metricas) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {shap?.disponivel && shap.top_features_p_l && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                      Fatores Determinantes (P. Perda)
-                    </p>
-                    <div className="space-y-2">
-                      {shap.top_features_p_l.map((f) => {
-                        const pct = Math.min(
-                          Math.abs(f.contribuicao) * 400,
-                          100,
-                        );
-                        const positivo = f.contribuicao > 0;
-                        return (
-                          <div
-                            key={f.feature}
-                            className="flex items-center gap-3"
-                          >
-                            <span
-                              className="text-xs text-slate-500 w-36 truncate shrink-0"
-                              title={f.feature}
-                            >
-                              {f.feature}
-                            </span>
-                            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${positivo ? "bg-red-400" : "bg-green-400"}`}
-                                style={{ width: `${pct}%` }}
-                              />
-                            </div>
-                            <span
-                              className={`text-xs font-semibold w-14 text-right ${positivo ? "text-red-600" : "text-green-600"}`}
-                            >
-                              {positivo ? "+" : ""}
-                              {f.contribuicao.toFixed(3)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-2">
-                      Vermelho aumenta risco · Verde reduz risco
-                    </p>
-                  </div>
-                )}
 
-                {metricas && (
-                  <div>
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                      Confiabilidade do Modelo
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">
-                          AUC-ROC
-                        </p>
-                        <p className="font-bold text-slate-800 text-lg">
-                          {metricas.modelo_a.auc_roc.toFixed(3)}
-                        </p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">
-                          Calibração (ECE)
-                        </p>
-                        <p className="font-bold text-slate-800 text-lg">
-                          {metricas.modelo_a.ece.toFixed(3)}
-                        </p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">
-                          MAE Condenação
-                        </p>
-                        <p className="font-bold text-slate-800 text-lg">
-                          R$ {metricas.modelo_b.mae.toLocaleString("pt-BR")}
-                        </p>
-                      </div>
-                      <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                        <p className="text-[10px] text-slate-400 uppercase tracking-wide">
-                          Cobertura IC 80%
-                        </p>
-                        <p className="font-bold text-slate-800 text-lg">
-                          {(metricas.quantis.cobertura_ic80 * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-# HACKATHON UFMG. 2026 — Enter AI Challenge
+# HACKATHON UFMG 2026 — Enter AI Challenge
 
 **17 e 18 de Abril de 2026**
 
@@ -35,6 +35,7 @@ O fluxo atual funciona assim:
 5. Após a decisão, reporta: se optou por acordo ou defesa; o valor proposto; e o resultado da negociação.
 
 O desafio é triplo:
+
 - Definir uma **boa política de acordos**
 - Garantir que os advogados a sigam de forma **consistente**
 - **Monitorar continuamente** os resultados para avaliar se a política está sendo efetiva
@@ -55,13 +56,13 @@ Construir uma solução que:
 
 A solução deve conter, no mínimo:
 
-| # | Requisito |
-|---|-----------|
-| 1 | **Regra de decisão** — lógica que analise o processo e determine: acordo ou defesa |
-| 2 | **Sugestão de valor** — caso a recomendação seja acordo, sugerir qual valor oferecer |
+| # | Requisito                                                                                                                 |
+| - | ------------------------------------------------------------------------------------------------------------------------- |
+| 1 | **Regra de decisão** — lógica que analise o processo e determine: acordo ou defesa                               |
+| 2 | **Sugestão de valor** — caso a recomendação seja acordo, sugerir qual valor oferecer                            |
 | 3 | **Acesso à recomendação** — meio prático do advogado acessar a recomendação para o caso que está analisando |
-| 4 | **Monitoramento de aderência** — forma do banco acompanhar se a política está sendo seguida pelos advogados |
-| 5 | **Monitoramento de efetividade** — forma do banco avaliar se a política está gerando os resultados esperados |
+| 4 | **Monitoramento de aderência** — forma do banco acompanhar se a política está sendo seguida pelos advogados     |
+| 5 | **Monitoramento de efetividade** — forma do banco avaliar se a política está gerando os resultados esperados     |
 
 > Fique à vontade para usar quaisquer ferramentas e tecnologias.
 
@@ -80,14 +81,14 @@ Cada equipe receberá:
 
 ### Descrição dos Subsídios
 
-| Documento | Descrição |
-|-----------|-----------|
-| **Contrato** | Contrato firmado entre o Banco UFMG e a parte autora |
-| **Extrato** | Extrato da conta corrente da parte autora com o banco |
-| **Comprovante de crédito** | Documento regulatório junto ao BACEN atestando a legitimidade da operação |
-| **Dossiê** | Verificação de autenticidade das assinaturas e documentos pessoais do contrato |
-| **Demonstrativo de evolução da dívida** | Extrato mês a mês do saldo de dívida e pagamentos |
-| **Laudo referenciado** | Síntese da operação de crédito (data, valores, prazos, canal de contratação, etc.) |
+| Documento                                        | Descrição                                                                              |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| **Contrato**                               | Contrato firmado entre o Banco UFMG e a parte autora                                     |
+| **Extrato**                                | Extrato da conta corrente da parte autora com o banco                                    |
+| **Comprovante de crédito**                | Documento regulatório junto ao BACEN atestando a legitimidade da operação             |
+| **Dossiê**                                | Verificação de autenticidade das assinaturas e documentos pessoais do contrato         |
+| **Demonstrativo de evolução da dívida** | Extrato mês a mês do saldo de dívida e pagamentos                                     |
+| **Laudo referenciado**                     | Síntese da operação de crédito (data, valores, prazos, canal de contratação, etc.) |
 
 ---
 
@@ -121,22 +122,22 @@ Além do repositório, submeter:
 
 ## 7. Critérios de Avaliação
 
-| # | Critério | Descrição |
-|---|----------|-----------|
-| 1 | **Leitura do problema** | Entendimento do caso, priorização correta e impacto no negócio |
-| 2 | **Criatividade e usabilidade** | Criatividade na abordagem e qualidade da experiência de uso |
-| 3 | **Colaboração** | Divisão de responsabilidades, colaboração e clareza na apresentação |
-| 4 | **Execução** | Acurácia do output, funcionalidades embarcadas, consistência e viabilidade |
-| 5 | **Uso de IA** | Aplicação de IA para acelerar, melhorar ou diferenciar a solução |
+| # | Critério                            | Descrição                                                                  |
+| - | ------------------------------------ | ---------------------------------------------------------------------------- |
+| 1 | **Leitura do problema**        | Entendimento do caso, priorização correta e impacto no negócio            |
+| 2 | **Criatividade e usabilidade** | Criatividade na abordagem e qualidade da experiência de uso                 |
+| 3 | **Colaboração**              | Divisão de responsabilidades, colaboração e clareza na apresentação     |
+| 4 | **Execução**                 | Acurácia do output, funcionalidades embarcadas, consistência e viabilidade |
+| 5 | **Uso de IA**                  | Aplicação de IA para acelerar, melhorar ou diferenciar a solução         |
 
 ---
 
 ## 8. Prazo
 
-| Evento | Data/Hora |
-|--------|-----------|
-| **Submissão** | 18/04 às **04:00** (da manhã) |
-| **Apresentações finais** | 18/04 às **07:00** |
+| Evento                           | Data/Hora                            |
+| -------------------------------- | ------------------------------------ |
+| **Submissão**             | 18/04 às**04:00** (da manhã) |
+| **Apresentações finais** | 18/04 às**07:00**             |
 
 > Boa sorte — e bom café e/ou energético! ☕
 
@@ -148,8 +149,7 @@ Além do repositório, submeter:
 
 Acesse [github.com/talismanai/hackathon-ufmg-2026](https://github.com/talismanai/hackathon-ufmg-2026) e clique em **"Use this template" → "Create a new repository"**.
 
-- **Nome do repositório:** `hackathon-ufmg-2026-grupo<N>` — substitua `<N>` pelo número do seu grupo  
-  _Exemplo: `hackathon-ufmg-2026-grupo7`_
+- **Nome do repositório:** `hackathon-ufmg-2026-grupo<N>` — substitua `<N>` pelo número do seu grupo_Exemplo: `hackathon-ufmg-2026-grupo7`_
 - **Visibilidade:** `Public`
 
 ### 2. Clone e desenvolva
@@ -166,9 +166,8 @@ cd hackathon-ufmg-2026-grupo<N>
 
 Envie a URL do seu repositório público para o formulário de entrega presente no site [hackathon.getenter.ai](https://hackathon.getenter.ai) até **18/04 às 04:00**.
 
-
-
 A URL deve seguir o formato:
+
 ```
 https://github.com/<usuario-ou-org>/hackathon-ufmg-2026-grupo<N>
 ```
