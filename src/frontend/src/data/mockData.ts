@@ -18,7 +18,11 @@ export type StatusIA =
   | 'pendente'
   | 'em_analise'
   | 'concluido'
+  | 'concluido_aceito'
+  | 'concluido_rejeitado'
   | 'aguardando_subsidios'
+  | 'aguardando_aprovacao_advogado'
+  | 'aguardando_aprovacao_juiz'
 
 /** Decisão do advogado responsável */
 export type DecisaoAdvogado = 'acordo' | 'defesa' | 'pendente'
@@ -136,7 +140,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Parcial procedência',
     valorCausa: 13534.0,
     valorCondenacao: 7714.38,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_aceito',
     decisaoAdvogado: 'acordo',
     dataEntrada: '2025-01-08T09:12:00Z',
     advogadoResponsavel: advogados[0],
@@ -160,7 +164,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Parcial procedência',
     valorCausa: 7883.63,
     valorCondenacao: 3784.14,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_aceito',
     decisaoAdvogado: 'acordo',
     dataEntrada: '2025-01-10T14:32:00Z',
     advogadoResponsavel: advogados[1],
@@ -179,7 +183,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Parcial procedência',
     valorCausa: 8561.97,
     valorCondenacao: 6507.1,
-    statusDaIA: 'em_analise',
+    statusDaIA: 'aguardando_aprovacao_advogado',
     decisaoAdvogado: 'pendente',
     dataEntrada: '2025-01-11T08:45:00Z',
     advogadoResponsavel: advogados[2],
@@ -198,14 +202,14 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Improcedência',
     valorCausa: 5693.13,
     valorCondenacao: 0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_rejeitado',
     decisaoAdvogado: 'defesa',
     dataEntrada: '2025-01-12T11:00:00Z',
     advogadoResponsavel: advogados[3],
     tribunal: 'TJAM',
     prioridade: 'baixa',
     scoreRisco: calcScoreRisco('Improcedência', 5693.13, 0),
-    valorAcordoSugerido: null,
+    valorAcordoSugerido: 1992.6,
   },
   // ── Linha 5 ───────────────────────────────────────────────────────────────
   {
@@ -217,14 +221,14 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Improcedência',
     valorCausa: 8515.67,
     valorCondenacao: 0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_rejeitado',
     decisaoAdvogado: 'defesa',
     dataEntrada: '2025-01-13T10:20:00Z',
     advogadoResponsavel: advogados[4],
     tribunal: 'TJAM',
     prioridade: 'baixa',
     scoreRisco: calcScoreRisco('Improcedência', 8515.67, 0),
-    valorAcordoSugerido: null,
+    valorAcordoSugerido: 2980.48,
   },
   // ── Linha 6 ───────────────────────────────────────────────────────────────
   {
@@ -255,7 +259,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Procedência',
     valorCausa: 11180.0,
     valorCondenacao: 11180.0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'aguardando_aprovacao_juiz',
     decisaoAdvogado: 'acordo',
     dataEntrada: '2025-01-15T09:30:00Z',
     advogadoResponsavel: advogados[0],
@@ -274,7 +278,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Extinção',
     valorCausa: 20060.4,
     valorCondenacao: 0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_aceito',
     decisaoAdvogado: 'defesa',
     dataEntrada: '2025-01-16T16:00:00Z',
     advogadoResponsavel: advogados[1],
@@ -293,7 +297,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Parcial procedência',
     valorCausa: 16021.5,
     valorCondenacao: 9773.12,
-    statusDaIA: 'em_analise',
+    statusDaIA: 'aguardando_aprovacao_advogado',
     decisaoAdvogado: 'pendente',
     dataEntrada: '2025-01-17T08:00:00Z',
     advogadoResponsavel: advogados[2],
@@ -312,7 +316,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Extinção',
     valorCausa: 16520.52,
     valorCondenacao: 0,
-    statusDaIA: 'pendente',
+    statusDaIA: 'aguardando_subsidios',
     decisaoAdvogado: 'pendente',
     dataEntrada: '2025-01-18T10:45:00Z',
     advogadoResponsavel: advogados[3],
@@ -331,7 +335,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Procedência',
     valorCausa: 22500.0,
     valorCondenacao: 22500.0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_aceito',
     decisaoAdvogado: 'acordo',
     dataEntrada: '2026-04-01T11:30:00Z',
     advogadoResponsavel: advogados[4],
@@ -350,7 +354,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Parcial procedência',
     valorCausa: 31200.0,
     valorCondenacao: 18720.0,
-    statusDaIA: 'em_analise',
+    statusDaIA: 'aguardando_aprovacao_advogado',
     decisaoAdvogado: 'pendente',
     dataEntrada: '2026-04-05T14:00:00Z',
     advogadoResponsavel: advogados[5],
@@ -369,14 +373,14 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Improcedência',
     valorCausa: 9800.0,
     valorCondenacao: 0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'concluido_rejeitado',
     decisaoAdvogado: 'defesa',
     dataEntrada: '2026-04-08T09:00:00Z',
     advogadoResponsavel: advogados[0],
     tribunal: 'TJRJ',
     prioridade: 'media',
     scoreRisco: calcScoreRisco('Improcedência', 9800, 0),
-    valorAcordoSugerido: null,
+    valorAcordoSugerido: 3430.0,
   },
   // ── Linha 14 ──────────────────────────────────────────────────────────────
   {
@@ -407,7 +411,7 @@ export const mockProcessos: Processo[] = [
     resultadoMicro: 'Procedência',
     valorCausa: 19400.0,
     valorCondenacao: 19400.0,
-    statusDaIA: 'concluido',
+    statusDaIA: 'aguardando_aprovacao_juiz',
     decisaoAdvogado: 'acordo',
     dataEntrada: '2026-04-15T12:00:00Z',
     advogadoResponsavel: advogados[2],
@@ -485,7 +489,12 @@ export const mockStats = {
   exitoCount: mockProcessos.filter((p) => p.resultadoMacro === 'Êxito').length,
   naoExitoCount: mockProcessos.filter((p) => p.resultadoMacro === 'Não Êxito').length,
   pendentesIA: mockProcessos.filter((p) => p.statusDaIA === 'pendente').length,
-  emAnaliseIA: mockProcessos.filter((p) => p.statusDaIA === 'em_analise').length,
+  concluidoCount: mockProcessos.filter((p) => p.statusDaIA === 'concluido' || p.statusDaIA === 'concluido_aceito' || p.statusDaIA === 'concluido_rejeitado').length,
+  concluido_aceitoCount: mockProcessos.filter((p) => p.statusDaIA === 'concluido_aceito').length,
+  concluido_rejeitadoCount: mockProcessos.filter((p) => p.statusDaIA === 'concluido_rejeitado').length,
+  aguardandoSubsidiosCount: mockProcessos.filter((p) => p.statusDaIA === 'aguardando_subsidios').length,
+  aguardandoAprovacaoAdvogadoCount: mockProcessos.filter((p) => p.statusDaIA === 'aguardando_aprovacao_advogado').length,
+  aguardandoAprovacaoJuizCount: mockProcessos.filter((p) => p.statusDaIA === 'aguardando_aprovacao_juiz').length,
   totalValorCausa: mockProcessos.reduce((acc, p) => acc + p.valorCausa, 0),
   totalCondenacao: mockProcessos.reduce((acc, p) => acc + p.valorCondenacao, 0),
   taxaExito:

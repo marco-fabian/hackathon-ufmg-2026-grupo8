@@ -10,6 +10,7 @@ import {
   Briefcase,
 } from 'lucide-react'
 import { useView } from '@/context/ViewContext'
+import { mockStats } from '@/data/mockData'
 
 // ─── Navigation Config ────────────────────────────────────────────────────────
 interface NavItem {
@@ -18,12 +19,6 @@ interface NavItem {
   href: string
   badge?: number
 }
-
-const NAV_ITEMS: NavItem[] = [
-  { icon: <LayoutDashboard size={18} />, label: 'Dashboard',    href: '/' },
-  { icon: <Scale            size={18} />, label: 'Fila de Processos', href: '/processos', badge: 4 },
-  { icon: <BrainCircuit     size={18} />, label: 'Análise de Caso',   href: '/analise' },
-]
 
 // ─── Role Switcher ─────────────────────────────────────────────────────────────
 function RoleSwitcher() {
@@ -90,6 +85,16 @@ function RoleSwitcher() {
 function Sidebar() {
   const location = useLocation()
   const { userRole } = useView()
+
+  const filaBadge = userRole === 'advogado'
+    ? mockStats.aguardandoAprovacaoAdvogadoCount
+    : mockStats.aguardandoAprovacaoJuizCount
+
+  const NAV_ITEMS: NavItem[] = [
+    { icon: <LayoutDashboard size={18} />, label: 'Dashboard',         href: '/' },
+    { icon: <Scale           size={18} />, label: 'Fila de Processos', href: '/processos', badge: filaBadge },
+    { icon: <BrainCircuit    size={18} />, label: 'Análise de Caso',   href: '/analise' },
+  ]
 
   const isActive = (href: string) =>
     href === '/' ? location.pathname === '/' : location.pathname.startsWith(href)
