@@ -1,0 +1,222 @@
+[
+  {
+    "id": "stj-sumula-479",
+    "tribunal": "STJ",
+    "tipo": "Súmula",
+    "numero": "479",
+    "ementa": "As instituições financeiras respondem objetivamente pelos danos gerados por fortuito interno relativo a fraudes e delitos praticados por terceiros no âmbito de operações bancárias.",
+    "ementa_resumida": "Bancos respondem objetivamente por fraudes de terceiros em operações bancárias.",
+    "sub_assuntos": ["Golpe", "Genérico"],
+    "favoravel_banco": false,
+    "contextos": ["fraude", "golpe", "responsabilidade objetiva", "fortuito interno", "terceiro", "operação bancária"]
+  },
+  {
+    "id": "stj-sumula-297",
+    "tribunal": "STJ",
+    "tipo": "Súmula",
+    "numero": "297",
+    "ementa": "O Código de Defesa do Consumidor é aplicável às instituições financeiras.",
+    "ementa_resumida": "CDC aplica-se integralmente às instituições financeiras e seus contratos.",
+    "sub_assuntos": ["Genérico", "Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["CDC", "consumidor", "banco", "contrato bancário", "inversão do ônus da prova"]
+  },
+  {
+    "id": "stj-sumula-385",
+    "tribunal": "STJ",
+    "tipo": "Súmula",
+    "numero": "385",
+    "ementa": "Da anotação irregular em cadastro de proteção ao crédito, não cabe indenização por dano moral, quando preexistente legítima inscrição, ressalvado o direito ao cancelamento.",
+    "ementa_resumida": "Inscrição indevida em cadastro de inadimplentes não gera dano moral se há débito legítimo preexistente.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["cadastro negativo", "inadimplência", "dano moral", "inscrição indevida"]
+  },
+  {
+    "id": "stj-tema-466",
+    "tribunal": "STJ",
+    "tipo": "Tese Repetitiva",
+    "numero": "Tema 466",
+    "ementa": "A instituição financeira responde pelos danos causados por fraudes ou delitos praticados por terceiros, como, por exemplo, a habilitação de linha telefônica, a abertura de conta-corrente ou a obtenção de empréstimo mediante a apresentação de documentos falsos, porquanto tal fato se insere no risco do empreendimento.",
+    "ementa_resumida": "Banco responde por empréstimo obtido com documentos falsos: risco do empreendimento.",
+    "sub_assuntos": ["Golpe", "Genérico"],
+    "favoravel_banco": false,
+    "contextos": ["fraude", "documentos falsos", "risco do empreendimento", "empréstimo", "habilitação"]
+  },
+  {
+    "id": "stj-resp-inus-prova",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.531.877",
+    "ementa": "A ausência do contrato físico ou eletrônico assinado pelo consumidor inverte o ônus da prova, incumbindo à instituição financeira demonstrar a manifestação de vontade do cliente para a contratação do produto ou serviço.",
+    "ementa_resumida": "Sem contrato assinado, ônus da prova cabe ao banco demonstrar anuência do cliente.",
+    "sub_assuntos": ["Genérico", "Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["contrato", "ônus da prova", "anuência", "manifestação de vontade", "falta de contrato"]
+  },
+  {
+    "id": "stj-resp-contrato-assinado",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.944.587",
+    "ementa": "Quando o contrato de empréstimo está formalmente assinado pelo autor e os valores foram creditados em conta de sua titularidade, a simples alegação de não reconhecimento da operação, desacompanhada de outros elementos probatórios, não é suficiente para afastar a validade do negócio jurídico.",
+    "ementa_resumida": "Contrato assinado e crédito em conta própria: alegação de desconhecimento insuficiente sem mais provas.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["contrato assinado", "crédito em conta", "validade", "não reconhecimento", "prova"]
+  },
+  {
+    "id": "stj-resp-ted-titularidade",
+    "tribunal": "STJ",
+    "tipo": "AgInt no AREsp",
+    "numero": "1.823.341",
+    "ementa": "A realização de transferência eletrônica (TED/PIX) dos valores do empréstimo para conta de mesma titularidade do autor, com posterior movimentação pelo próprio cliente, constitui indício relevante de conhecimento e anuência à operação contratada.",
+    "ementa_resumida": "TED para conta própria com movimentação pelo cliente: forte indício de anuência ao empréstimo.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["TED", "transferência", "mesma titularidade", "movimentação", "anuência", "conta própria"]
+  },
+  {
+    "id": "stj-resp-parcelas-pagas",
+    "tribunal": "STJ",
+    "tipo": "AgInt",
+    "numero": "2.012.774",
+    "ementa": "O pagamento regular de parcelas do empréstimo pelo autor, ainda que por período limitado, constitui ato incompatível com o total desconhecimento da operação e gera presunção de ciência da contratação, nos termos do art. 330 do Código Civil.",
+    "ementa_resumida": "Pagamento de parcelas pelo autor presume ciência da contratação (CC art. 330).",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["parcelas pagas", "pagamento", "presunção", "ciência", "contratação", "art. 330"]
+  },
+  {
+    "id": "stj-resp-extrato-prova",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.792.140",
+    "ementa": "O extrato bancário apresentado pela instituição financeira, quando não impugnado especificamente pelo autor, constitui prova documental hábil a demonstrar a movimentação dos valores relativos ao empréstimo controvertido.",
+    "ementa_resumida": "Extrato bancário não impugnado é prova hábil da movimentação do crédito.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["extrato bancário", "prova documental", "movimentação", "impugnação", "crédito"]
+  },
+  {
+    "id": "stj-resp-fraude-digital",
+    "tribunal": "STJ",
+    "tipo": "AREsp",
+    "numero": "2.079.644",
+    "ementa": "A contratação de empréstimo realizada por meio de canal digital mediante uso indevido de dados pessoais da vítima por terceiro fraudador configura fortuito externo apenas quando a instituição financeira comprovar a adoção de todas as medidas de segurança razoáveis e esperadas do setor. Na ausência de tal comprovação, aplica-se a responsabilidade objetiva.",
+    "ementa_resumida": "Fraude em canal digital: banco responde se não comprovar medidas de segurança adequadas.",
+    "sub_assuntos": ["Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["fraude digital", "canal digital", "dados pessoais", "segurança", "fortuito externo", "golpe"]
+  },
+  {
+    "id": "stj-resp-biometria",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.876.430",
+    "ementa": "A autenticação biométrica e o uso de device fingerprint e geolocalização, embora constituam mecanismos de segurança relevantes, não elidem por si sós a responsabilidade da instituição financeira quando há indícios de que terceiro se valeu de dados indevidamente obtidos para burlar os sistemas de validação.",
+    "ementa_resumida": "Biometria e device fingerprint não excluem responsabilidade do banco se houver indícios de fraude.",
+    "sub_assuntos": ["Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["biometria", "device fingerprint", "geolocalização", "autenticação", "fraude", "responsabilidade"]
+  },
+  {
+    "id": "stj-resp-laudo-pericial",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.876.430",
+    "ementa": "O laudo pericial produzido unilateralmente por entidade técnica contratada por uma das partes possui valor probatório relativo, devendo ser confrontado com os demais elementos de prova constantes dos autos para formação do convencimento judicial.",
+    "ementa_resumida": "Laudo pericial unilateral tem valor probatório relativo; deve ser cotejado com demais provas.",
+    "sub_assuntos": ["Genérico", "Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["laudo pericial", "prova", "unilateral", "contraditório", "convencimento judicial"]
+  },
+  {
+    "id": "stj-resp-cdc-inversao",
+    "tribunal": "STJ",
+    "tipo": "Tese Repetitiva",
+    "numero": "REsp 1.685.986",
+    "ementa": "Em demandas que envolvam relação de consumo bancária, é cabível a inversão do ônus da prova prevista no art. 6º, VIII, do CDC, sempre que o consumidor for hipossuficiente ou quando sua alegação for verossímil, cabendo ao fornecedor demonstrar a regularidade da contratação.",
+    "ementa_resumida": "CDC art. 6º, VIII: inversão do ônus da prova em contratos bancários quando verossímil a alegação.",
+    "sub_assuntos": ["Genérico", "Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["inversão do ônus da prova", "CDC", "hipossuficiência", "verossimilhança", "contrato bancário"]
+  },
+  {
+    "id": "stj-resp-dossie-assinatura",
+    "tribunal": "STJ",
+    "tipo": "AgInt no REsp",
+    "numero": "1.901.223",
+    "ementa": "A apresentação de dossiê contendo reconhecimento formal de firma ou validação biométrica da assinatura do contratante, combinada com demais documentos de identificação, cria presunção relativa de que o negócio foi celebrado pelo próprio titular, cabendo ao autor prova em contrário.",
+    "ementa_resumida": "Dossiê com assinatura conferida cria presunção de contratação pelo titular.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["dossiê", "assinatura", "reconhecimento de firma", "presunção", "titular", "identificação"]
+  },
+  {
+    "id": "stj-resp-prescricao",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.360.969",
+    "ementa": "O prazo prescricional para o ajuizamento de ação de reparação de danos decorrentes de fraude bancária é de três anos, nos termos do art. 206, §3º, V, do Código Civil, contado da data em que o consumidor tomou ciência do fato.",
+    "ementa_resumida": "Prescrição para ação por fraude bancária: 3 anos a partir da ciência do fato (CC art. 206 §3º V).",
+    "sub_assuntos": ["Genérico", "Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["prescrição", "prazo", "três anos", "fraude bancária", "ciência", "Código Civil"]
+  },
+  {
+    "id": "stj-resp-acordo-homologado",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.766.093",
+    "ementa": "O acordo judicial homologado em ação que discute contrato bancário produz efeito de coisa julgada material, vedando a rediscussão dos mesmos fatos e fundamentos em demanda posterior, salvo alegação de vício de consentimento devidamente comprovado.",
+    "ementa_resumida": "Acordo homologado tem efeito de coisa julgada; vedada rediscussão posterior.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": true,
+    "contextos": ["acordo", "coisa julgada", "homologação", "rediscussão", "vício de consentimento"]
+  },
+  {
+    "id": "stj-resp-consignado-fraudulento",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.197.929",
+    "ementa": "Configura prática abusiva e ilícita a concessão de empréstimo consignado mediante apresentação de documentos falsificados por terceiro, respondendo a instituição financeira pelos danos causados ao consumidor titular dos dados, independentemente de culpa, por se tratar de risco inerente à atividade bancária.",
+    "ementa_resumida": "Empréstimo consignado com documentos falsos: banco responde independentemente de culpa.",
+    "sub_assuntos": ["Golpe", "Genérico"],
+    "favoravel_banco": false,
+    "contextos": ["consignado", "documentos falsificados", "terceiro", "responsabilidade objetiva", "risco da atividade"]
+  },
+  {
+    "id": "stj-resp-banco-prova-contrato",
+    "tribunal": "STJ",
+    "tipo": "REsp",
+    "numero": "1.061.134",
+    "ementa": "Incumbe ao banco o ônus de provar que o contrato foi celebrado pelo próprio titular, quando este alega não tê-lo contratado. A mera exibição de ficha cadastral preenchida não supre a necessidade de comprovação da autoria e da anuência do contratante.",
+    "ementa_resumida": "Banco deve provar que contrato foi celebrado pelo titular; ficha cadastral sozinha não basta.",
+    "sub_assuntos": ["Genérico", "Golpe"],
+    "favoravel_banco": false,
+    "contextos": ["ônus da prova", "contrato", "titular", "ficha cadastral", "autoria", "anuência"]
+  },
+  {
+    "id": "stf-re-responsabilidade",
+    "tribunal": "STF",
+    "tipo": "RE",
+    "numero": "602.381",
+    "ementa": "A responsabilidade civil das instituições financeiras por danos causados a consumidores decorrentes de fraudes e delitos praticados por terceiros é objetiva, com fundamento no art. 14 do CDC e no art. 927, parágrafo único, do Código Civil, dado que tais riscos são inerentes à atividade bancária.",
+    "ementa_resumida": "STF: responsabilidade civil bancária por fraudes de terceiros é objetiva (CDC art. 14 + CC art. 927).",
+    "sub_assuntos": ["Golpe", "Genérico"],
+    "favoravel_banco": false,
+    "contextos": ["responsabilidade objetiva", "STF", "CDC art. 14", "CC art. 927", "fraude", "banco"]
+  },
+  {
+    "id": "stj-sumula-106",
+    "tribunal": "STJ",
+    "tipo": "Súmula",
+    "numero": "106",
+    "ementa": "Proposta a ação no prazo fixado para o seu exercício, a demora na citação, por motivos inerentes ao mecanismo da Justiça, não justifica o acolhimento da arguição de prescrição ou decadência.",
+    "ementa_resumida": "Demora na citação por falha do Judiciário não gera prescrição contra o autor.",
+    "sub_assuntos": ["Genérico"],
+    "favoravel_banco": false,
+    "contextos": ["prescrição", "citação", "decadência", "prazo", "demora judicial"]
+  }
+]

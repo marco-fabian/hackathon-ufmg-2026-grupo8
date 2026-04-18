@@ -109,9 +109,20 @@ def _montar_features(
     )
 
 
+def _bloco_jurisprudencia(refs: list[dict]) -> str:
+    """Formata referencias de jurisprudencia para injecao no prompt."""
+    if not refs:
+        return ""
+    linhas = ["\n\nJurisprudências relevantes para fundamentar a decisão:"]
+    for r in refs:
+        linhas.append(f"- {r['tribunal']} {r['tipo']} {r['numero']}: {r['ementa_resumida']}")
+    return "\n".join(linhas)
+
+
 def gerar_explicacao_llm(
     resultado,
     shap_info: Optional[dict] = None,
+    jurisprudencias: Optional[list[dict]] = None,
     model: str = "gpt-4o-mini",
     timeout: float = 8.0,
 ) -> Optional[str]:
@@ -150,13 +161,16 @@ def gerar_explicacao_llm(
         "(acordo ou defesa) em processos civeis de nao reconhecimento de emprestimo "
         "para advogados externos. Seja objetivo e tecnico, em portugues do Brasil. "
         "Nao invente numeros. Use APENAS os dados fornecidos no JSON. "
-        "Formato: um unico paragrafo de ate 120 palavras, sem listas e sem cabecalhos."
+        "Formato: um unico paragrafo de ate 150 palavras, sem listas e sem cabecalhos. "
+        "Se jurisprudencias forem fornecidas, cite ao menos uma no paragrafo."
     )
+    jur_bloco = _bloco_jurisprudencia(jurisprudencias or [])
     user_msg = (
         "Gere a recomendacao juridica em um paragrafo, citando P(L), Vc, faixa, "
         "custo esperado e (se acordo) valor sugerido. Se houver override documental, "
-        "justifique a sobreposicao da decisao do modelo.\n\n"
-        f"DADOS:\n```json\n{json.dumps(contexto, ensure_ascii=False, indent=2)}\n```"
+        "justifique a sobreposicao da decisao do modelo."
+        + jur_bloco
+        + f"\n\nDADOS:\n```json\n{json.dumps(contexto, ensure_ascii=False, indent=2)}\n```"
     )
 
     try:
@@ -176,10 +190,15 @@ def gerar_explicacao_llm(
         return None
 
 
-def gerar_explicacao(resultado, shap_info: Optional[dict] = None, usar_llm: bool = True) -> str:
+def gerar_explicacao(
+    resultado,
+    shap_info: Optional[dict] = None,
+    jurisprudencias: Optional[list[dict]] = None,
+    usar_llm: bool = True,
+) -> str:
     """Entrypoint principal: LLM se possivel, senao deterministico."""
     if usar_llm:
-        texto = gerar_explicacao_llm(resultado, shap_info=shap_info)
+        texto = gerar_explicacao_llm(resultado, shap_info=shap_info, jurisprudencias=jurisprudencias)
         if texto:
             return texto
     return resultado.explicacao
