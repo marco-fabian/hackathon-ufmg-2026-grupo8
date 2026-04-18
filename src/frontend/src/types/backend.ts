@@ -87,6 +87,12 @@ export interface CasoResumo {
   explicacao: string
 }
 
+export interface ArquivoCaso {
+  nome: string
+  tamanho_kb: number
+  url: string
+}
+
 export interface ProcessoFinalizado {
   processo_id: string
   uf: string

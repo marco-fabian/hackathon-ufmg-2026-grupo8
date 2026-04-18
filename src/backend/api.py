@@ -23,6 +23,7 @@ sys.modules["__main__"].TargetEncodingStats = TargetEncodingStats  # type: ignor
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from src.backend.db.connection import conectar  # noqa: E402
@@ -178,6 +179,37 @@ def listar_casos() -> list[dict[str, Any]]:
             "explicacao": dec["explicacao"],
         })
     return casos
+
+
+@app.get("/api/casos/{slug}/arquivos")
+def listar_arquivos_caso(slug: str) -> list[dict[str, Any]]:
+    caso_dir = ROOT / "data" / slug.replace("caso_", "Caso_")
+    if not caso_dir.exists():
+        raise HTTPException(status_code=404, detail="Caso nao encontrado")
+    return [
+        {
+            "nome": f.name,
+            "tamanho_kb": round(f.stat().st_size / 1024, 1),
+            "url": f"/api/arquivos/{slug}/{f.name}",
+        }
+        for f in sorted(caso_dir.glob("*.pdf"))
+    ]
+
+
+@app.get("/api/arquivos/{slug}/{filename}")
+def baixar_arquivo(slug: str, filename: str) -> FileResponse:
+    caso_dir = (ROOT / "data" / slug.replace("caso_", "Caso_")).resolve()
+    path = (caso_dir / filename).resolve()
+    if not str(path).startswith(str(caso_dir)):
+        raise HTTPException(status_code=403)
+    if not path.exists():
+        raise HTTPException(status_code=404)
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        content_disposition_type="inline",
+        headers={"Cache-Control": "no-store"},
+    )
 
 
 @app.get("/api/casos/{slug}")

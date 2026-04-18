@@ -1,5 +1,5 @@
 import { api } from './api'
-import type { CasoResumo, Metricas, PipelineCaso, Politica, ProcessoFinalizado, ResultadoDecisao } from '@/types/backend'
+import type { ArquivoCaso, CasoResumo, Metricas, PipelineCaso, Politica, ProcessoFinalizado, ResultadoDecisao } from '@/types/backend'
 
 export async function listarCasos(): Promise<CasoResumo[]> {
   const res = await api.get<CasoResumo[]>('/casos')
@@ -30,6 +30,11 @@ export async function decidir(payload: {
 
 export async function obterMetricas(): Promise<Metricas> {
   const res = await api.get<Metricas>('/metricas')
+  return res.data
+}
+
+export async function listarArquivosCaso(slug: string): Promise<ArquivoCaso[]> {
+  const res = await api.get<ArquivoCaso[]>(`/casos/${slug}/arquivos`)
   return res.data
 }
 
