@@ -21,8 +21,8 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { icon: <LayoutDashboard size={18} />, label: 'Dashboard',    href: '/' },
-  { icon: <Scale            size={18} />, label: 'Fila de Processos', href: '/processos', badge: 4 },
-  { icon: <BrainCircuit     size={18} />, label: 'Análise de Caso',   href: '/analise' },
+  { icon: <Scale            size={18} />, label: 'Processos Finalizados', href: '/processos' },
+  { icon: <BrainCircuit     size={18} />, label: 'Casos em aberto',  href: '/analise' },
 ]
 
 // ─── Role Switcher ─────────────────────────────────────────────────────────────

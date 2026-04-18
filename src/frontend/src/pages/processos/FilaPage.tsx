@@ -1,55 +1,37 @@
-import { useState, useEffect } from 'react'
-import { Scale, Clock, BrainCircuit } from 'lucide-react'
+import { useMemo } from 'react'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
-import { mockProcessos, mockStats, type Processo } from '@/data/mockData'
-import { useView } from '@/context/ViewContext'
-import { Link } from 'react-router-dom'
-import { listarCasos } from '@/services/casosService'
-import { casoToProcesso } from '@/utils/backendToProcesso'
+import { mockProcessos, type Processo } from '@/data/mockData'
+
+type ResultadoFinal = 'Acordo' | 'Extinto' | 'Improcedente' | 'Parcialmente' | 'Procedente'
+
+function deriveResultado(p: Processo): ResultadoFinal {
+  if (p.decisaoAdvogado === 'acordo') return 'Acordo'
+  switch (p.resultadoMicro) {
+    case 'Improcedência':      return 'Improcedente'
+    case 'Parcial procedência': return 'Parcialmente'
+    case 'Procedência':        return 'Procedente'
+    case 'Extinção':           return 'Extinto'
+    default:                   return 'Parcialmente'
+  }
+}
+
+const RESULTADO_STYLE: Record<ResultadoFinal, string> = {
+  'Acordo':       'text-blue-700 bg-blue-50 border-blue-200',
+  'Extinto':      'text-green-700 bg-green-50 border-green-200',
+  'Improcedente': 'text-green-700 bg-green-50 border-green-200',
+  'Parcialmente': 'text-amber-700 bg-amber-50 border-amber-200',
+  'Procedente':   'text-red-700 bg-red-50 border-red-200',
+}
 
 export default function FilaPage() {
-  const { userRole } = useView()
-  const [processos, setProcessos] = useState<Processo[]>(mockProcessos)
-
-  useEffect(() => {
-    listarCasos()
-      .then(casos => setProcessos([...casos.map(casoToProcesso), ...mockProcessos]))
-      .catch(() => { /* fica no mock */ })
-  }, [])
-
-  const statusColor: Record<string, string> = {
-    concluido: 'text-green-600 bg-green-50 border-green-200',
-    aguardando_subsidios: 'text-orange-600 bg-orange-50 border-orange-200',
-  }
-
-  const statusLabel: Record<string, string> = {
-    concluido: 'Concluído',
-    aguardando_subsidios: 'Aguardando Subsídios',
-  }
-
-  const normalizeStatus = (s: string) =>
-    s === 'concluido' ? 'concluido' : 'aguardando_subsidios'
+  const processosFinalizados = useMemo(
+    () => mockProcessos.filter(p => p.decisaoAdvogado !== 'pendente'),
+    []
+  )
 
   return (
-    <DashboardLayout pageTitle="Fila de Processos">
+    <DashboardLayout pageTitle="Processos Finalizados">
       <div className="space-y-6">
-        {/* Summary chips */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2 shadow-sm">
-            <Scale size={16} className="text-indigo-500" />
-            <span className="text-sm font-semibold text-slate-700">{mockStats.totalProcessos} processos</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2 shadow-sm">
-            <Clock size={16} className="text-orange-500" />
-            <span className="text-sm font-semibold text-slate-700">{mockStats.pendentesIA} aguardando IA</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-2 shadow-sm">
-            <BrainCircuit size={16} className="text-blue-500" />
-            <span className="text-sm font-semibold text-slate-700">{mockStats.emAnaliseIA} em análise</span>
-          </div>
-        </div>
-
-        {/* Table */}
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -58,54 +40,36 @@ export default function FilaPage() {
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Número do Processo</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">UF</th>
                   <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Sub-assunto</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Valor Causa</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Sugestão</th>
-                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Status</th>
-                  {userRole === 'banco' && (
-                    <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Risco IA</th>
-                  )}
-                  <th className="text-center px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Ação</th>
+                  <th className="text-left px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Resultado</th>
+                  <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Valor da Causa</th>
+                  <th className="text-right px-4 py-3 font-semibold text-slate-600 text-xs uppercase tracking-wide">Valor da Condenação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {processos.map((proc) => (
-                  <tr key={proc.numeroCaso} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs text-slate-700">{proc.numeroCaso}</td>
-                    <td className="px-4 py-3 text-slate-600">{proc.uf}</td>
-                    <td className="px-4 py-3 text-slate-600">{proc.subAssunto}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-800">
-                      {proc.valorCausa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-800">
-                      {proc.valorAcordoSugerido != null
-                        ? proc.valorAcordoSugerido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-                        : <span className="text-slate-400 font-normal text-xs">—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {(() => { const s = normalizeStatus(proc.statusDaIA); return (
-                        <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full border ${statusColor[s]}`}>
-                          {statusLabel[s]}
+                {processosFinalizados.map((proc) => {
+                  const resultado = deriveResultado(proc)
+                  return (
+                    <tr key={proc.numeroCaso} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 font-mono text-xs text-slate-700">{proc.numeroCaso}</td>
+                      <td className="px-4 py-3 text-slate-600">{proc.uf}</td>
+                      <td className="px-4 py-3 text-slate-600">{proc.subAssunto}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${RESULTADO_STYLE[resultado]}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                          {resultado}
                         </span>
-                      )})()}
-                    </td>
-                    {userRole === 'banco' && (
-                      <td className="px-4 py-3 text-right">
-                        <span className={`font-bold text-sm ${proc.scoreRisco >= 70 ? 'text-red-600' : proc.scoreRisco >= 40 ? 'text-yellow-600' : 'text-green-600'}`}>
-                          {proc.scoreRisco}
-                        </span>
-                        <span className="text-slate-400 text-xs">/100</span>
                       </td>
-                    )}
-                    <td className="px-4 py-3 text-center">
-                      <Link
-                        to={`/analise?id=${proc.numeroCaso}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-                      >
-                        Analisar →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                      <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                        {proc.valorCausa.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-slate-800">
+                        {proc.valorCondenacao > 0
+                          ? proc.valorCondenacao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                          : <span className="text-slate-400 font-normal text-xs">—</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
