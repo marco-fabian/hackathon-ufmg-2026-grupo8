@@ -101,12 +101,11 @@ function Sidebar() {
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-        <div
-          style={{ backgroundColor: 'var(--color-primary-600)' }}
-          className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-        >
-          <Scale size={16} color="#fff" />
-        </div>
+        <img
+          src="/logo-enter.svg"
+          alt="Enter"
+          style={{ width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0 }}
+        />
         <div>
           <p className="text-white font-semibold text-sm tracking-wide leading-none">EnterOS</p>
           <p style={{ color: 'var(--color-text-muted)' }} className="text-xs mt-0.5">

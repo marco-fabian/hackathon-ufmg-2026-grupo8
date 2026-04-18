@@ -8,14 +8,14 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* Brand — Orange & Black */
-  --color-primary-50:  #FFF7ED;
-  --color-primary-100: #FFEDD5;
-  --color-primary-200: #FED7AA;
-  --color-primary-300: #FDBA74;
-  --color-primary-400: #FB923C;
-  --color-primary-500: #F97316;
-  --color-primary-600: #EA580C;
-  --color-primary-700: #C2410C;
+  --color-primary-50:  #FFaeED;
+  --color-primary-100: #FFaeD5;
+  --color-primary-200: #FEaeAA;
+  --color-primary-300: #FDae74;
+  --color-primary-400: #FBae3C;
+  --color-primary-500: #F9ae16;
+  --color-primary-600: #EAae0C;
+  --color-primary-700: #ffae0C;
   --color-primary-800: #9A3412;
   --color-primary-900: #1A1A1A;
   --color-primary-950: #0D0D0D;
