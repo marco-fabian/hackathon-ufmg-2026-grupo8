@@ -2,6 +2,10 @@
 
 **Hackathon UFMG 2026 · Enter AI Challenge**
 
+**Video demo:** https://www.loom.com/share/6dd49ab9203e49f8858d041a0dfd80e5
+
+**Apresentacao:** [docs/presentation.pdf](docs/presentation.pdf)
+
 ---
 
 ## Problema
