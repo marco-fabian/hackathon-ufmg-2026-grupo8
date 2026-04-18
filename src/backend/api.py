@@ -424,6 +424,10 @@ def listar_processos_finalizados(
 
 @app.post("/api/analise/{processo_id:path}/decisao-escritorio")
 def registrar_decisao_escritorio(processo_id: str, req: DecisaoEscritorioReq) -> dict[str, Any]:
+    # Normaliza slug lowercase ("caso_01") para o formato usado no DB ("Caso_01"),
+    # mesmo padrao aplicado em /api/casos/{slug} (linha 186).
+    processo_id = processo_id.replace("caso_", "Caso_")
+
     if req.decisao == "ACORDO":
         if req.valor_fechado is None or req.valor_fechado <= 0:
             raise HTTPException(

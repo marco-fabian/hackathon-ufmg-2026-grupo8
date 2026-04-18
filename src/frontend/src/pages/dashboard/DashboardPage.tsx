@@ -166,10 +166,20 @@ function KpiCard({ label, value, icon, subtitle, accent = COLOR_ORANGE, sparklin
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 
+interface DecisaoBanco {
+  id: string
+  nome: string
+  numeroCaso: string
+  decisao: 'ACORDO' | 'DEFESA'
+  valor: number | null
+  timestamp: string
+}
+
 export default function DashboardPage() {
   const { userRole } = useView()
   const [selectedChart, setSelectedChart] = useState<'subassunto' | 'documentos' | 'valores' | 'estados' | 'processos' | 'ticket'>('subassunto')
   const [baseProcessos, setBaseProcessos] = useState<ProcessoBase[]>([])
+  const [decisoesBanco, setDecisoesBanco] = useState<DecisaoBanco[]>([])
 
   useEffect(() => {
     fetch('/processos.json')
@@ -181,6 +191,24 @@ export default function DashboardPage() {
         })))
       })
   }, [])
+
+  useEffect(() => {
+    const ler = () => {
+      try {
+        const raw = localStorage.getItem('decisoesBanco')
+        setDecisoesBanco(raw ? JSON.parse(raw) : [])
+      } catch {
+        setDecisoesBanco([])
+      }
+    }
+    ler()
+    window.addEventListener('storage', ler)
+    window.addEventListener('focus', ler)
+    return () => {
+      window.removeEventListener('storage', ler)
+      window.removeEventListener('focus', ler)
+    }
+  }, [userRole])
 
   const ADVOGADO_LOGADO = 'Dr. Rafael Silva'
 
@@ -273,6 +301,61 @@ export default function DashboardPage() {
             />
           </div>
         </section>
+
+        {/* ─── DECISÕES APROVADAS RECENTEMENTE (view do banco) ─── */}
+        {userRole === 'banco' && decisoesBanco.length > 0 && (
+          <section>
+            <h2 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text-secondary)', marginBottom: '16px', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+              Decisões Aprovadas Recentemente
+            </h2>
+            <div style={{
+              backgroundColor: 'var(--color-bg-card)',
+              border: '1px solid var(--color-border)',
+              borderRadius: '10px',
+              boxShadow: 'var(--shadow-card)',
+              overflow: 'hidden',
+            }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--color-bg-subtle, #F8FAFC)', borderBottom: '1px solid var(--color-border)' }}>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Caso</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Nº do Processo</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Decisão</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Valor Fechado</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: '12px', fontWeight: 600, color: 'var(--color-text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em' }}>Registrada em</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {decisoesBanco.map((d, i) => (
+                    <tr key={d.id + d.timestamp} style={{ borderBottom: i < decisoesBanco.length - 1 ? '1px solid var(--color-border)' : 'none' }}>
+                      <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: 600, color: 'var(--color-text-primary)' }}>{d.nome}</td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--color-text-secondary)', fontFamily: 'monospace' }}>{d.numeroCaso}</td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: '999px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          color: '#fff',
+                          backgroundColor: d.decisao === 'ACORDO' ? '#10B981' : '#EF4444',
+                        }}>{d.decisao}</span>
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: '14px', fontWeight: 600, textAlign: 'right', color: d.valor ? '#059669' : 'var(--color-text-secondary)' }}>
+                        {d.valor
+                          ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(d.valor)
+                          : '—'}
+                      </td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+                        {new Date(d.timestamp).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
 
 
         {/* ─── GRÁFICOS ANALÍTICOS ─── */}
