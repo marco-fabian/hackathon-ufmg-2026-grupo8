@@ -53,12 +53,20 @@ CREATE TABLE IF NOT EXISTS decisoes_processo (
 
     politicas              JSONB          NOT NULL,
 
+    status                 VARCHAR(30)    NOT NULL DEFAULT 'para_avaliar',
+    analisado_em           TIMESTAMPTZ    NULL,
+
     criado_em              TIMESTAMPTZ    NOT NULL DEFAULT now()
 );
+
+ALTER TABLE decisoes_processo
+    ADD COLUMN IF NOT EXISTS status       VARCHAR(30)  NOT NULL DEFAULT 'para_avaliar',
+    ADD COLUMN IF NOT EXISTS analisado_em TIMESTAMPTZ  NULL;
 
 CREATE INDEX IF NOT EXISTS idx_decisoes_uf        ON decisoes_processo(uf);
 CREATE INDEX IF NOT EXISTS idx_decisoes_ifp_tier  ON decisoes_processo(ifp_tier);
 CREATE INDEX IF NOT EXISTS idx_decisoes_indicio   ON decisoes_processo(indicio_de_fraude);
+CREATE INDEX IF NOT EXISTS idx_decisoes_status    ON decisoes_processo(status);
 CREATE INDEX IF NOT EXISTS idx_decisoes_politicas ON decisoes_processo USING GIN (politicas);
 
 
