@@ -69,9 +69,17 @@ def _extrair_insumos(pasta: Path, processo_id: str) -> dict[str, Any]:
 def _bloco_politica(motor: MotorDecisao, uf: str, sub: str, valor: float, fd: dict) -> dict[str, Any]:
     r = motor.decidir(uf=uf, sub_assunto=sub, valor_causa=valor, features_documentais=fd)
     q10, q90 = r.valor_condenacao_faixa
+    economia_esperada = None
+    if r.valor_acordo_sugerido is not None:
+        economia_esperada = round(
+            r.taxa_aceite_estimada * (r.custo_esperado_defesa - r.valor_acordo_sugerido), 2
+        )
     return {
         "policy": r.policy,
-        "alpha": r.alpha_aplicado,
+        "alpha": round(r.alpha_aplicado, 3),
+        "alpha_quantil": r.alpha_quantil,
+        "taxa_aceite_estimada": r.taxa_aceite_estimada,
+        "alphas_por_quantil": {str(q): round(a, 3) for q, a in r.alphas_por_quantil.items()},
         "limiar": r.limiar_aplicado,
         "decisao": r.decisao.value,
         "override_aplicado": r.override_aplicado,
@@ -85,6 +93,7 @@ def _bloco_politica(motor: MotorDecisao, uf: str, sub: str, valor: float, fd: di
         "custo_processual_cp": round(r.custo_processual, 2),
         "custo_esperado_defesa": round(r.custo_esperado_defesa, 2),
         "valor_acordo_sugerido": round(r.valor_acordo_sugerido, 2) if r.valor_acordo_sugerido is not None else None,
+        "economia_esperada_vs_defesa": economia_esperada,
         "explicacao": r.explicacao,
     }
 

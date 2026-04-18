@@ -45,20 +45,29 @@
     ],
     "sinais_protetivos": [
       "8 parcelas pagas",
-      "Laudo com biometria",
-      "Laudo com device fingerprint",
-      "Laudo com geolocalização"
+      "Biometria disponível",
+      "Device fingerprint disponível",
+      "Geolocalização disponível"
     ],
     "justificativa": "Embora existam sinais protetivos, a ausência de contrato e extrato, juntamente com a falta de um dossiê, indicam um cenário de risco. O score reflete a presença de alguns pagamentos, mas a falta de documentação essencial eleva a suspeita."
   },
   "politicas": {
     "Conservadora": {
       "policy": "Conservadora",
-      "alpha": 0.5,
+      "alpha": 0.548,
+      "alpha_quantil": 0.75,
+      "taxa_aceite_estimada": 0.75,
+      "alphas_por_quantil": {
+        "0.15": 0.485,
+        "0.3": 0.494,
+        "0.5": 0.519,
+        "0.75": 0.548,
+        "0.9": 1.0
+      },
       "limiar": 7000.0,
       "decisao": "ACORDO",
-      "override_aplicado": true,
-      "razao_override": "IFP_FRACO",
+      "override_aplicado": false,
+      "razao_override": null,
       "probabilidade_perda": 0.9295,
       "valor_condenacao_estimado": 20601.06,
       "valor_condenacao_faixa_ic80": {
@@ -67,16 +76,26 @@
       },
       "custo_processual_cp": 1408.72,
       "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10279.19,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Conservadora."
+      "valor_acordo_sugerido": 11271.33,
+      "economia_esperada_vs_defesa": 6965.28,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 11,271.33 (alpha = 0.55 x custo esperado; taxa historica de aceite estimada: 75%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 7,000.00. Politica aplicada: Conservadora."
     },
     "Moderada": {
       "policy": "Moderada",
-      "alpha": 0.5,
+      "alpha": 0.519,
+      "alpha_quantil": 0.5,
+      "taxa_aceite_estimada": 0.5,
+      "alphas_por_quantil": {
+        "0.15": 0.485,
+        "0.3": 0.494,
+        "0.5": 0.519,
+        "0.75": 0.548,
+        "0.9": 1.0
+      },
       "limiar": 4000.0,
       "decisao": "ACORDO",
-      "override_aplicado": true,
-      "razao_override": "IFP_FRACO",
+      "override_aplicado": false,
+      "razao_override": null,
       "probabilidade_perda": 0.9295,
       "valor_condenacao_estimado": 20601.06,
       "valor_condenacao_faixa_ic80": {
@@ -85,34 +104,26 @@
       },
       "custo_processual_cp": 1408.72,
       "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10279.19,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Moderada."
+      "valor_acordo_sugerido": 10667.14,
+      "economia_esperada_vs_defesa": 4945.62,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 10,667.14 (alpha = 0.52 x custo esperado; taxa historica de aceite estimada: 50%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 4,000.00. Politica aplicada: Moderada."
     },
-    "Balanceada": {
-      "policy": "Balanceada",
-      "alpha": 0.5,
-      "limiar": 3000.0,
-      "decisao": "ACORDO",
-      "override_aplicado": true,
-      "razao_override": "IFP_FRACO",
-      "probabilidade_perda": 0.9295,
-      "valor_condenacao_estimado": 20601.06,
-      "valor_condenacao_faixa_ic80": {
-        "q10": 19933.15,
-        "q90": 24121.6
+    "Arriscada": {
+      "policy": "Arriscada",
+      "alpha": 0.494,
+      "alpha_quantil": 0.3,
+      "taxa_aceite_estimada": 0.3,
+      "alphas_por_quantil": {
+        "0.15": 0.485,
+        "0.3": 0.494,
+        "0.5": 0.519,
+        "0.75": 0.548,
+        "0.9": 1.0
       },
-      "custo_processual_cp": 1408.72,
-      "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10279.19,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Balanceada."
-    },
-    "Agressiva": {
-      "policy": "Agressiva",
-      "alpha": 0.5,
       "limiar": 2000.0,
       "decisao": "ACORDO",
-      "override_aplicado": true,
-      "razao_override": "IFP_FRACO",
+      "override_aplicado": false,
+      "razao_override": null,
       "probabilidade_perda": 0.9295,
       "valor_condenacao_estimado": 20601.06,
       "valor_condenacao_faixa_ic80": {
@@ -121,26 +132,9 @@
       },
       "custo_processual_cp": 1408.72,
       "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10279.19,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Agressiva."
-    },
-    "Maxima": {
-      "policy": "Maxima",
-      "alpha": 0.5,
-      "limiar": 500.0,
-      "decisao": "ACORDO",
-      "override_aplicado": true,
-      "razao_override": "IFP_FRACO",
-      "probabilidade_perda": 0.9295,
-      "valor_condenacao_estimado": 20601.06,
-      "valor_condenacao_faixa_ic80": {
-        "q10": 19933.15,
-        "q90": 24121.6
-      },
-      "custo_processual_cp": 1408.72,
-      "custo_esperado_defesa": 20558.37,
-      "valor_acordo_sugerido": 10279.19,
-      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. A decisao foi sobreposta pela fragilidade dos subsidios (IFP = 0.42): documentacao agregada abaixo do limiar de 0.50. Recomenda-se ACORDO (valor sugerido: R$ 10,279.19, alpha = 0.50). Politica aplicada: Maxima."
+      "valor_acordo_sugerido": 10162.81,
+      "economia_esperada_vs_defesa": 3118.67,
+      "explicacao": "Decisao: ACORDO. Probabilidade de perda prevista: 93.0%. Condenacao estimada (se perder): R$ 20,601.06 (faixa IC 80%: R$ 19,933.15 a R$ 24,121.60). Custo esperado da defesa: R$ 20,558.37. Valor sugerido de acordo: R$ 10,162.81 (alpha = 0.49 x custo esperado; taxa historica de aceite estimada: 30%). Custo esperado (R$ 20,558.37) supera o limiar de R$ 2,000.00. Politica aplicada: Arriscada."
     }
   }
 }
