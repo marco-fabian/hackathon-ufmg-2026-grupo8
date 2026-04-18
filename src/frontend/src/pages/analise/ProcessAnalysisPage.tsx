@@ -138,16 +138,33 @@ export default function ProcessAnalysisPage() {
   }, [])
 
   // Quando um caso é selecionado, preenche o detalhe com os dados do mock
+  // e busca jurisprudências via API
   useEffect(() => {
     if (!selectedCase) return
     setShap(null)
     setDecision(null)
+    setJurisprudencias([])
     if (selectedCase.dadosPreenchidos) {
       aplicarResultado(selectedCase.dadosPreenchidos)
     } else {
       aplicarResultado(BLANK_ANALISE)
     }
-  }, [selectedCase, aplicarResultado])
+    // busca jurisprudências para o caso selecionado
+    obterCaso(selectedCase.id).then(pip => {
+      const p = pip.payload as PayloadProcesso
+      setPayload(p)
+      decidir({
+        uf: p.uf,
+        sub_assunto: p.sub_assunto,
+        valor_causa: p.valor_causa,
+        policy: politicaSelecionada,
+        features_documentais: p.features_documentais,
+      }).then(d => {
+        if (d.jurisprudencias_relacionadas) setJurisprudencias(d.jurisprudencias_relacionadas)
+        if (d.shap) setShap(d.shap)
+      }).catch(() => {})
+    }).catch(() => {})
+  }, [selectedCase, aplicarResultado]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Busca métricas do modelo uma vez
   useEffect(() => {
