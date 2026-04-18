@@ -1,0 +1,22 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: enter_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: enter
+      POSTGRES_PASSWORD: enter
+      POSTGRES_DB: enter
+    ports:
+      - "5432:5432"
+    volumes:
+      - enter_pgdata:/var/lib/postgresql/data
+      - ./src/backend/db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U enter -d enter"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  enter_pgdata:
